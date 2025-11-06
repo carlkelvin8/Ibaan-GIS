@@ -1,0 +1,22 @@
+<dataStore>
+  <id>DataStoreInfoImpl--6ba693d1:199875a834d:-7ffb</id>
+  <name>ibaan_gpkg</name>
+  <type>GeoPackage</type>
+  <enabled>true</enabled>
+  <workspace>
+    <id>WorkspaceInfoImpl--13d41130:19985135eb9:-7ffb</id>
+  </workspace>
+  <connectionParameters>
+    <entry key="fetch size">1000</entry>
+    <entry key="Expose primary keys">false</entry>
+    <entry key="Batch insert size">1</entry>
+    <entry key="database">file:data/ibaan.gpkg</entry>
+    <entry key="read_only">false</entry>
+    <entry key="dbtype">geopkg</entry>
+    <entry key="namespace">http://localhost:5173/gis</entry>
+  </connectionParameters>
+  <__default>false</__default>
+  <dateCreated>2025-09-26 18:50:45.572 UTC</dateCreated>
+  <dateModified>2025-09-26 20:34:35.332 UTC</dateModified>
+  <disableOnConnFailure>false</disableOnConnFailure>
+</dataStore>

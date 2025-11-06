@@ -1,0 +1,242 @@
+:root {
+  /* Orange theme on light background */
+  --sb-bg: #ffd580;                 /* orange background */
+  --sb-surface: #0f1629;            /* deep slate for chips/avatars */
+  --sb-text: #111827;               /* gray-900 for good contrast */
+  --sb-muted: #6b7280;              /* gray-500 */
+  --sb-border: rgba(0, 0, 0, 0.08); /* subtle border on light bg */
+  --sb-hover: rgba(0, 0, 0, 0.06);
+  --sb-active: rgba(0, 0, 0, 0.12);
+  --sb-accent: #ff7300;             /* brand accent */
+}
+
+/* Keep the header offset if you have a fixed header */
+.Sidebar { margin-top: 57px; }
+
+.Sidebar {
+  background: var(--sb-bg);
+  color: var(--sb-text);
+  border-right: 1px solid var(--sb-border);
+  transition: transform .25s ease, width .25s ease, box-shadow .25s ease;
+}
+
+.Sidebar.show { transform: translateX(0); }
+.Sidebar.hide { transform: translateX(-100%); }
+
+.sb-frame {
+  height: calc(100vh - 57px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Brand ===== */
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px;
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.sb-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--sb-surface);
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--sb-border);
+}
+
+.sb-logo img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.sb-title {
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+/* ===== User Card ===== */
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-bottom: 1px dashed var(--sb-border);
+}
+
+.sb-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--sb-surface);
+  color: #e5e7eb;
+  font-weight: 700;
+  font-size: .9rem;
+  border: 1px solid var(--sb-border);
+}
+
+.sb-user-text { line-height: 1.05; min-width: 0; }
+.sb-user-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-role { font-size: .78rem; color: var(--sb-muted); text-transform: capitalize; }
+
+/* Tiny dot when collapsed to still hint role */
+.sb-user-dot {
+  width: 8px; height: 8px; margin-left: auto;
+  border-radius: 999px; background: var(--sb-accent);
+}
+
+/* ===== Search ===== */
+.sb-search { border-bottom: 1px dashed var(--sb-border); }
+
+.sb-search .input-group,
+.sb-search .form-control,
+.sb-search .input-group-text,
+.sb-search .btn {
+  border-radius: 10px;
+}
+
+.sb-search .input-group-text {
+  background: var(--sb-hover);
+  border: 1px solid var(--sb-border);
+}
+
+.sb-search .form-control {
+  border: 1px solid var(--sb-border);
+  background: #fff7e6;
+}
+
+.sb-search .form-control:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 115, 0, .25);
+  border-color: var(--sb-accent);
+}
+
+/* ===== Scroll area ===== */
+.sb-scroll {
+  overflow-y: auto;
+  padding: 8px;
+}
+/* pretty scrollbar */
+.sb-scroll::-webkit-scrollbar { width: 10px; }
+.sb-scroll::-webkit-scrollbar-thumb {
+  background: var(--sb-hover);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ===== Nav links ===== */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  color: var(--sb-text);
+  text-decoration: none;
+  border-radius: 10px;
+  background: transparent;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+  border: 1px solid transparent;
+}
+
+.nav-link i { font-size: 1.05rem; opacity: .95; }
+
+.nav-link:hover { background: var(--sb-hover); }
+
+.nav-link.active {
+  background: var(--sb-active);
+  color: var(--sb-text);
+  border-color: var(--sb-border);
+  box-shadow: inset 3px 0 0 var(--sb-accent);
+}
+
+.nav-link:focus-visible,
+.sb-toggle:focus-visible,
+.sb-icon-btn:focus-visible,
+.sb-burger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 115, 0, .35);
+}
+
+/* Submenu container */
+.sb-sub { padding-left: 26px; }
+
+/* Toggle buttons look like links, stay flat */
+.sb-toggle {
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Footer */
+.sb-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--sb-border);
+}
+
+/* Icon button (collapse chevron) */
+.sb-icon-btn {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--sb-text);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.sb-icon-btn:hover { background: var(--sb-hover); }
+
+/* ===== Collapsed (desktop) ===== */
+.Sidebar.is-collapsed .sb-title,
+.Sidebar.is-collapsed .sb-user-text,
+.Sidebar.is-collapsed .sb-search input,
+.Sidebar.is-collapsed .nav-link span,
+.Sidebar.is-collapsed .sb-toggle span {
+  display: none;
+}
+
+.Sidebar.is-collapsed .sb-sub { padding-left: 12px; }
+
+/* Keep caret hidden when collapsed to avoid clutter */
+.Sidebar.is-collapsed .sb-toggle .bi-chevron-up,
+.Sidebar.is-collapsed .sb-toggle .bi-chevron-down {
+  display: none;
+}
+
+/* ===== Mobile overlay style ===== */
+@media (max-width: 767px) {
+  .Sidebar {
+    position: fixed;
+    left: 0; top: 57px; z-index: 2000;
+    height: calc(100vh - 57px);
+    box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  }
+}
+
+/* Mobile burger */
+.sb-burger {
+  position: fixed;
+  top: 8px; left: 10px; z-index: 2100;
+  width: 40px; height: 40px;
+  border: none; border-radius: 8px;
+  background: var(--sb-surface);
+  color: #e5e7eb;
+  display: grid; place-items: center;
+  outline: 1px solid var(--sb-border);
+  cursor: pointer;
+}
+.sb-burger:hover { background: #17223a; }

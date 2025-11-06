@@ -1,0 +1,8 @@
+// backend/src/server.js (patch)
+// 1) npm i express-http-proxy
+// 2) Add the following lines:
+//
+// import geoserverProxy from "./routes/geoserverProxy.js";
+// app.use("/gs", geoserverProxy);
+//
+// Then your frontend can call:  /gs/wms , /gs/wfs

@@ -1,0 +1,16 @@
+# deps & builds
+node_modules/
+**/node_modules/
+dist/
+build/
+.out/
+.tmp/
+.idea/
+
+# env/secrets
+.env
+**/.env
+
+# logs
+logs/
+*.log

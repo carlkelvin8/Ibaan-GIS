@@ -1,0 +1,21 @@
+# Gumamit ng official Node.js image
+FROM node:18-alpine
+
+# Gumawa ng working directory
+WORKDIR /app
+
+# Copy package.json at package-lock.json para ma-install dependencies
+COPY package*.json ./
+
+# Install dependencies (production lang para mas maliit image)
+RUN npm install --production
+
+# Copy lahat ng source code
+COPY . .
+
+# Gumamit ng Railway's dynamic PORT
+ENV PORT=3000
+EXPOSE 3000
+
+# Start command
+CMD ["npm", "start"]

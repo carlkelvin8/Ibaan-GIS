@@ -1,0 +1,5 @@
+FROM docker.osgeo.org/geoserver:2.25.x
+ENV GEOSERVER_DATA_DIR=/opt/geoserver/data_dir
+ENV JAVA_OPTS="-Xms256m -Xmx512m"
+# copy your local data_dir (which already contains data/ibaan.gpkg)
+COPY data_dir/ /opt/geoserver/data_dir/

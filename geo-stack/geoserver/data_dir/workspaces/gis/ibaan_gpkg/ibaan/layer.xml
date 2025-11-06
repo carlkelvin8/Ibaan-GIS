@@ -1,0 +1,16 @@
+<layer>
+  <name>ibaan</name>
+  <id>LayerInfoImpl--6ba693d1:199875a834d:-7ff9</id>
+  <type>VECTOR</type>
+  <defaultStyle>
+    <id>StyleInfoImpl--37c589f0:1998181ebac:-7ffe</id>
+  </defaultStyle>
+  <resource class="featureType">
+    <id>FeatureTypeInfoImpl--6ba693d1:199875a834d:-7ffa</id>
+  </resource>
+  <attribution>
+    <logoWidth>0</logoWidth>
+    <logoHeight>0</logoHeight>
+  </attribution>
+  <dateCreated>2025-09-26 19:09:12.500 UTC</dateCreated>
+</layer>
