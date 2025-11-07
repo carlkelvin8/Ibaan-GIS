@@ -1,9 +1,8 @@
+// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
-import cookieParser from "cookie-parser";
-import { createProxyMiddleware } from "http-proxy-middleware";
 import { database } from "./config/database.js";
 
 // ----- Routes -----
@@ -16,7 +15,7 @@ import taxRoutes from "./routes/taxRoute.js";
 import landAppraisalRoutes from "./routes/landAppraisalRoute.js";
 import landAssessmentRoutes from "./routes/landAssessmentRoutes.js";
 import taxOtherDetailsRoutes from "./routes/taxOtherDetailsRoutes.js";
-import auditLogsRoute from './routes/auditLogsRoute.js';
+import auditLogsRoutes from "./routes/auditLogsRoute.js";
 
 dotenv.config();
 
@@ -27,98 +26,93 @@ const app = express();
    ========================= */
 const PORT = Number(process.env.PORT) || 5000;
 
-const GEOSERVER_URL =
-  process.env.GEOSERVER_URL ||
-  "https://geoserver-custom-production.up.railway.app/geoserver";
-
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
+  "http://localhost:5174",
+  "https://cvgeospatial.gghsoftwaredev.com",
+  "https://www.cvgeospatial.gghsoftwaredev.com",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
 app.set("trust proxy", 1);
 
 /* =========================
-   Middlewares (order matters)
+   Middlewares
    ========================= */
-app.use(cors({
-  credentials: true,
-  
-  origin: (origin, cb) => {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    return cb(new Error("Not allowed by CORS"));
-  },
-  methods: ['GET','POST','PUT', 'PATCH','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization'],
-}));
-app.use(cookieParser());                 // <-- so req.cookies.session works
+app.use(
+  cors({
+    credentials: true,
+    origin: (origin, cb) => {
+      // allow server-to-server tools (no Origin) and allowed web origins
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error("Not allowed by CORS"));
+    },
+  })
+);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 
 /* =========================
-   Health / DB ping
+   Health check
    ========================= */
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, ts: new Date().toISOString() })
 );
 
+/* =========================
+   DB ping (non-fatal)
+   ========================= */
 (async () => {
   try {
     const [rows] = await database.query("SELECT 1 + 1 AS result");
     console.log("✅ DB OK. Test =", rows?.[0]?.result);
   } catch (err) {
-    console.warn("⚠️  DB ping failed (server will still start):", err?.message);
+    console.warn("⚠️  DB ping failed (server will still start):", err?.message || err);
   }
 })();
 
 /* =========================
-   GeoServer proxy (/gs → GEOSERVER_URL)
-   ========================= */
-app.use(
-  "/gs",
-  createProxyMiddleware({
-    target: GEOSERVER_URL,
-    changeOrigin: true,
-    pathRewrite: { "^/gs": "" },
-    logLevel: "warn",
-    onProxyReq(proxyReq, req, _res) {
-      console.log("→ GS", proxyReq.method, proxyReq.path);
-    },
-    onError(err, _req, res) {
-      console.error("GeoServer proxy error:", err?.message);
-      res.status(502).json({ error: "GeoServer proxy failed" });
-    },
-  })
-);
+   (GeoServer removed)
+   =========================
+   Note: This build no longer proxies /gs to GeoServer.
+   If you later want to re-add a proxy, bring back http-proxy-middleware
+   and mount it at /gs.
+*/
 
 /* =========================
-   API routes
+   Route mounts
+   NOTE: Frontend calls /api/...; keep /api/user for backward compatibility.
    ========================= */
-// userRoutes exposes: POST /login, POST /signup, GET /me, POST /logout,
-// admin users: GET /admin/users and CRUD under /user/*
-app.use("/api", userRoutes);       // /api/login, /api/me, /api/admin/users
-app.use("/api/user", userRoutes);  // legacy: /api/user/login, /api/user/me
+app.use("/api", userRoutes);        // /api/login, /api/signup, /api/admin/users
+app.use("/api/user", userRoutes);   // legacy: /api/user/login, etc.
 
 app.use("/api/alameda", alamedaRoutes);
 
-// Normalize ?sort=-updated_at:1 → ?sort=-updated_at (back-compat)
+// Normalize ?sort=-updated_at:1 style to ?sort=-updated_at
 app.use("/api/ibaan/parcels", (req, _res, next) => {
   const s = req.query?.sort;
   if (typeof s === "string" && s.includes(":")) req.query.sort = s.split(":")[0];
   next();
 });
-app.use('/api', auditLogsRoute);
 app.use("/api/ibaan", ibaanRoutes);
 
 app.use("/api/landparcel", landParcelRoutes);
-app.disable('etag'); // global: avoid 304s
-app.use('/api/building', buildingRoutes);
+app.use("/api/building", buildingRoutes);
+
+// Original tax mount
 app.use("/api/tax", taxRoutes);
-app.use("/api/ibaan/taxes", taxRoutes); // alias
+
+// Back-compat alias so /api/ibaan/taxes/* works (e.g., /upcoming)
+app.use("/api/ibaan/taxes", taxRoutes);
 
 app.use("/api/landappraisal", landAppraisalRoutes);
 app.use("/api/landassessment", landAssessmentRoutes);
 app.use("/api/taxotherdetails", taxOtherDetailsRoutes);
+app.use("/api/audit-logs", auditLogsRoutes);
+
+// Back-compat alias so /api/logs?scope=... works
+app.use("/api/logs", auditLogsRoutes);
 
 /* =========================
    404 + Error handler
@@ -129,15 +123,27 @@ app.use((req, res) => {
 
 app.use((err, _req, res, _next) => {
   console.error("🔥 Unhandled error:", err);
-  res.status(err.status || 500).json({ error: err?.message || "Server error" });
+  res.status(err?.status || 500).json({ error: err?.message || "Server error" });
 });
 
 /* =========================
-   Start
+   Start server
    ========================= */
-app.listen(PORT, () => {
-  console.log(`🚀 API server running on port ${PORT}`);
-  console.log(`🌐 Expected host: ${process.env.HOST || "http://localhost"}:${PORT}`);
-  console.log(`🔐 CORS allowed: ${ALLOWED_ORIGINS.map((o) => new URL(o).host).join(", ")}`);
-  console.log(`🛰️ GeoServer proxy target: ${GEOSERVER_URL}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 API listening on port ${PORT}`);
+  try {
+    console.log(
+      `🌐 Allowed CORS origins: ${ALLOWED_ORIGINS
+        .map((o) => {
+          try {
+            return new URL(o).host;
+          } catch {
+            return o;
+          }
+        })
+        .join(", ")}`
+    );
+  } catch {
+    console.log(`🌐 Allowed CORS origins (raw): ${ALLOWED_ORIGINS.join(", ")}`);
+  }
 });
