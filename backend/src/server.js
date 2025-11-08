@@ -34,6 +34,7 @@ const GEOSERVER_URL =
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:5174",
+   "https://cvgeospatial.gghsoftwaredev.com/",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
