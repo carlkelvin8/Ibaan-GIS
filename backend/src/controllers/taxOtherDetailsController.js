@@ -3,7 +3,7 @@ import { formatDate } from '../lib/utils.js';
 
 export async function getByTaxId(req, res) {
   try {
-    const [data] = await database.execute('SELECT * FROM tax_other_details WHERE taxId = ?', [req.params.taxid]);
+    const [data] = await database.execute('SELECT * FROM tax_other_details WHERE "taxId" = ?', [req.params.taxid]);
     if (data.length === 0) {
       return res.status(404).json({ error: "Data not found" });
     }
@@ -23,8 +23,8 @@ export async function upsertOtherDetails(req, res) {
       //  Update existing record
       const sql = `
         UPDATE tax_other_details
-        SET taxability = ?, effectivityYear = ?, quarter = ?, updateCode = ?, dateRegistered = ?
-        WHERE id = ? AND taxId = ?
+        SET taxability = ?, "effectivityYear" = ?, quarter = ?, "updateCode" = ?, "dateRegistered" = ?
+        WHERE id = ? AND "taxId" = ?
       `;
       const [result] = await database.execute(sql, [
         data.taxability || null,
@@ -45,7 +45,7 @@ export async function upsertOtherDetails(req, res) {
       // Insert new record
       const sql = `
         INSERT INTO tax_other_details 
-        (taxId, taxability, effectivityYear, quarter, updateCode, dateRegistered)
+        ("taxId", taxability, "effectivityYear", quarter, "updateCode", "dateRegistered")
         VALUES (?, ?, ?, ?, ?, ?) RETURNING id
       `;
       const [result] = await database.execute(sql, [

@@ -18,7 +18,7 @@ export async function getAll(req, res) {
     const params = [];
 
     if (lotNo) {
-      sql += " WHERE lotNo = ?";
+      sql += ' WHERE "lotNo" = ?';
       params.push(lotNo);
       if (barangay) {
         sql += " AND barangay = ?";
@@ -46,11 +46,11 @@ export async function addNew(req, res) {
   try {
     const sql = `
       INSERT INTO tax_forms (
-        arpNo, tdPrinted, municipalCode, accountNo, ownerName, ownerAddress,
-        administrator, adminAddress, north, east, south, west,
-        propertyIndexNo, subdivision, phase, lotNo, tdPrintedNo,
-        houseNo, street, landmark, barangay, barangayOnPrint, barangayText,
-        octNo, dated, surveyNo, cadLotNo, lotNo2, blockNo
+        "arpNo", "tdPrinted", "municipalCode", "accountNo", "ownerName", "ownerAddress",
+        "administrator", "adminAddress", "north", "east", "south", "west",
+        "propertyIndexNo", "subdivision", "phase", "lotNo", "tdPrintedNo",
+        "houseNo", "street", "landmark", "barangay", "barangayOnPrint", "barangayText",
+        "octNo", "dated", "surveyNo", "cadLotNo", "lotNo2", "blockNo"
       )
       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id
     `;
@@ -124,11 +124,11 @@ export async function editById(req, res) {
 
     const sql = `
       UPDATE tax_forms SET
-        arpNo = ?, tdPrinted = ?, municipalCode = ?, accountNo = ?, ownerName = ?, ownerAddress = ?,
-        administrator = ?, adminAddress = ?, north = ?, east = ?, south = ?, west = ?,
-        propertyIndexNo = ?, subdivision = ?, phase = ?, lotNo = ?, tdPrintedNo = ?,
-        houseNo = ?, street = ?, landmark = ?, barangay = ?, barangayOnPrint = ?, barangayText = ?,
-        octNo = ?, dated = ?, surveyNo = ?, cadLotNo = ?, lotNo2 = ?, blockNo = ?
+        "arpNo" = ?, "tdPrinted" = ?, "municipalCode" = ?, "accountNo" = ?, "ownerName" = ?, "ownerAddress" = ?,
+        "administrator" = ?, "adminAddress" = ?, "north" = ?, "east" = ?, "south" = ?, "west" = ?,
+        "propertyIndexNo" = ?, "subdivision" = ?, "phase" = ?, "lotNo" = ?, "tdPrintedNo" = ?,
+        "houseNo" = ?, "street" = ?, "landmark" = ?, "barangay" = ?, "barangayOnPrint" = ?, "barangayText" = ?,
+        "octNo" = ?, "dated" = ?, "surveyNo" = ?, "cadLotNo" = ?, "lotNo2" = ?, "blockNo" = ?
       WHERE id = ?
     `;
 
@@ -194,7 +194,7 @@ export async function lookup(req, res) {
       return res.status(400).json({ error: "lotNo is required" });
     }
 
-    let sql = "SELECT id FROM tax_forms WHERE lotNo = ?";
+    let sql = 'SELECT id FROM tax_forms WHERE "lotNo" = ?';
     const params = [lotNo];
     if (barangay) {
       sql += " AND barangay = ?";

@@ -4,7 +4,7 @@ export async function addNew(req, res) {
   const data = req.body;
   
   try {
-    const sql = `INSERT INTO land_appraisal (taxId, class, subClass, actualUse, unitValue, area, stripping, adjustment, marketValue
+    const sql = `INSERT INTO land_appraisal (taxid, "class", "subClass", "actualUse", "unitValue", area, stripping, adjustment, "marketValue"
     )
     VALUES (?,?,?,?,?,?,?,?,?)`;
 
@@ -13,8 +13,8 @@ export async function addNew(req, res) {
         // 🔹 Update existing row
         const updateSql = `
           UPDATE land_appraisal 
-          SET \`class\` = ?, subClass = ?, actualUse = ?, unitValue = ?, area = ?, stripping = ?, adjustment = ?, marketValue = ?
-          WHERE id = ? AND taxId = ?
+          SET "class" = ?, "subClass" = ?, "actualUse" = ?, "unitValue" = ?, area = ?, stripping = ?, adjustment = ?, "marketValue" = ?
+          WHERE id = ? AND taxid = ?
         `;
         await database.execute(updateSql, [
           row.class || null,
@@ -32,7 +32,7 @@ export async function addNew(req, res) {
         // 🔹 Insert new row
         const insertSql = `
           INSERT INTO land_appraisal 
-          (taxId, \`class\`, subClass, actualUse, unitValue, area, stripping, adjustment, marketValue)
+          (taxid, "class", "subClass", "actualUse", "unitValue", area, stripping, adjustment, "marketValue")
           VALUES (?,?,?,?,?,?,?,?,?)
         `;
         await database.execute(insertSql, [

@@ -2,7 +2,7 @@ import { database } from "../config/database.js";
 
 export async function getByTaxId(req, res) {
   try {
-    const [data] = await database.execute('SELECT * FROM land_assessment_summary WHERE taxId = ?', [req.params.taxid]);
+    const [data] = await database.execute('SELECT * FROM land_assessment_summary WHERE "taxId" = ?', [req.params.taxid]);
     if (data.length === 0) {
       return res.status(404).json({ error: "Data not found" });
     }
@@ -22,8 +22,8 @@ export async function upsertAssessmentSummary(req, res) {
       // Update existing record
       const sql = `
         UPDATE land_assessment_summary
-        SET propertyKind = ?, propertyActualUse = ?, adjustedMarketValue = ?, \`level\` = ?, assessedValue = ?
-        WHERE id = ? AND taxId = ?
+        SET "propertyKind" = ?, "propertyActualUse" = ?, "adjustedMarketValue" = ?, "level" = ?, "assessedValue" = ?
+        WHERE id = ? AND "taxId" = ?
       `;
       const [result] = await database.execute(sql, [
         data.propertyKind || null,
@@ -44,7 +44,7 @@ export async function upsertAssessmentSummary(req, res) {
       // Insert new record
       const sql = `
         INSERT INTO land_assessment_summary 
-        (taxId, propertyKind, propertyActualUse, adjustedMarketValue, \`level\`, assessedValue)
+        ("taxId", "propertyKind", "propertyActualUse", "adjustedMarketValue", "level", "assessedValue")
         VALUES (?, ?, ?, ?, ?, ?) RETURNING id
       `;
       const [result] = await database.execute(sql, [
