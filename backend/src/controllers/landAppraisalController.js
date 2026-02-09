@@ -13,7 +13,7 @@ export async function addNew(req, res) {
         // 🔹 Update existing row
         const updateSql = `
           UPDATE land_appraisal 
-          SET class = ?, subClass = ?, actualUse = ?, unitValue = ?, area = ?, stripping = ?, adjustment = ?, marketValue = ?
+          SET \`class\` = ?, subClass = ?, actualUse = ?, unitValue = ?, area = ?, stripping = ?, adjustment = ?, marketValue = ?
           WHERE id = ? AND taxId = ?
         `;
         await database.execute(updateSql, [
@@ -32,7 +32,7 @@ export async function addNew(req, res) {
         // 🔹 Insert new row
         const insertSql = `
           INSERT INTO land_appraisal 
-          (taxId, class, subClass, actualUse, unitValue, area, stripping, adjustment, marketValue)
+          (taxId, \`class\`, subClass, actualUse, unitValue, area, stripping, adjustment, marketValue)
           VALUES (?,?,?,?,?,?,?,?,?)
         `;
         await database.execute(insertSql, [
@@ -75,7 +75,7 @@ export async function deleteOne(req, res) {
     const sql = `DELETE FROM land_appraisal WHERE id = ? AND taxId = ?`;
     const [result] = await database.execute(sql, [id, taxid]);
 
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Record not found" });
     }
 

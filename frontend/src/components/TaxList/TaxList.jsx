@@ -4,6 +4,7 @@ import Table from "react-bootstrap/Table";
 import Button from "react-bootstrap/Button";
 import api from "../../lib/axios.js";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const toStr = (v) => (v == null ? "" : String(v).trim());
 const up = (v) => toStr(v).toUpperCase();
@@ -57,12 +58,23 @@ export default function TaxList() {
   };
 
   const handleDelete = async (tax) => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.delete(`/tax/${tax.id}`);
+      Swal.fire('Deleted!', 'Tax form has been deleted.', 'success');
       await fetchTaxes();
     } catch (error) {
       console.error("delete failed", error);
-      alert("Failed to delete tax form.");
+      Swal.fire('Error', 'Failed to delete tax form.', 'error');
     }
   };
 

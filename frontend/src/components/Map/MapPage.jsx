@@ -677,18 +677,11 @@ export default function MapPage() {
 
       if (btnParcel) {
         btnParcel.onclick = () => {
-          const lines = [
-            `Parcel ID: ${pid || "—"}`,
-            `Survey ID: ${p?.SurveyId ?? p?.surveyid ?? "—"}`,
-            `Block Number: ${p?.BlockNumber ?? p?.blocknumber ?? "—"}`,
-            `Lot Number: ${lot || "—"}`,
-            `Area: ${p?.Area ?? p?.area ?? "—"}`,
-            `Barangay: ${p?.BarangayNa ?? p?.barangayna ?? "—"}`,
-            `Claimant: ${p?.Claimant ?? p?.claimant ?? "—"}`,
-            `Tie Point: ${p?.TiePointNa ?? p?.tiepointna ?? "—"}`,
-            `Survey Plan: ${p?.SurveyPlan ?? p?.surveyplan ?? "—"}`,
-          ].join("\n");
-          alert(`Complete Parcel Information\n\n${lines}`);
+          if (pid) {
+            navigate(`/parcel-details/${encodeURIComponent(pid)}`);
+          } else {
+            alert("No Parcel ID found for this record.");
+          }
         };
       }
     });

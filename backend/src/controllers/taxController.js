@@ -52,7 +52,7 @@ export async function addNew(req, res) {
         houseNo, street, landmark, barangay, barangayOnPrint, barangayText,
         octNo, dated, surveyNo, cadLotNo, lotNo2, blockNo
       )
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id
     `;
 
     const [result] = await database.query(sql, [
@@ -87,7 +87,7 @@ export async function addNew(req, res) {
       maybe(d.blockNo),
     ]);
 
-    res.json({ message: "Tax added successfully", insertId: result.insertId });
+    res.json({ message: "Tax added successfully", insertId: result[0].id });
   } catch (err) {
     console.error("addNew error:", err);
     res.status(500).json({ error: err.message });
@@ -165,7 +165,7 @@ export async function editById(req, res) {
       id,
     ]);
 
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Not found" });
     }
     res.status(200).json({ message: "Tax updated successfully" });
@@ -221,7 +221,7 @@ export async function removeById(req, res) {
   try {
     const { id } = req.params;
     const [result] = await database.query("DELETE FROM tax_forms WHERE id = ?", [id]);
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Not found" });
     }
     res.json({ message: "Deleted successfully" });

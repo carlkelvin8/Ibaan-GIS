@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import api from "../../lib/axios.js";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 
 // helpers similar to TaxList
 const toStr = (v) => (v == null ? "" : String(v).trim());
@@ -43,7 +44,7 @@ const Parcel = () => {
       }
 
       if (res.data.ID === 0) {
-        alert(res.data.message);
+        Swal.fire("Notice", res.data.message, "info");
         setResults([]);
       } else {
         const dataArray = Array.isArray(res.data) ? res.data : [res.data];

@@ -33,19 +33,22 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (err) => Promise.reject(err)
+  (err) => {
+    console.error("API Request Error:", err);
+    return Promise.reject(err);
+  }
 );
 
-// ---- Response interceptor: optional 401 handling ----
 api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err?.response?.status === 401) {
-      // pwede mong i-clear token at i-redirect sa login kung gusto mo
-      // clearAuthToken();
-      // window.location.assign('/login');
+  (response) => response,
+  (error) => {
+    console.error("API Response Error:", error);
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      // Optional: window.location.href = '/login';
     }
-    return Promise.reject(err);
+    return Promise.reject(error);
   }
 );
 

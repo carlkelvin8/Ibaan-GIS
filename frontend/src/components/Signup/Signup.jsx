@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {  useNavigate } from "react-router-dom";
 import api from '../../lib/axios.js';
+import Swal from 'sweetalert2';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -20,11 +21,19 @@ export default function Signup() {
     e.preventDefault();
     try {
       const res = await api.post("/user/signup", form);
-      alert(res.data.message);
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: res.data.message || 'Signup successful',
+      });
       navigate("/login");
     } catch (err) {
       console.log(err)
-      alert(err.response?.data?.error || "Something went wrong");
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: err.response?.data?.error || "Something went wrong",
+      });
     }
   };
 

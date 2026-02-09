@@ -51,7 +51,7 @@ export async function writeAuditLog({
     );
   } catch (e) {
     // log and swallow — never break the main flow
-    console.error("writeAuditLog failed (swallowed):", e?.sqlMessage || e?.message || e);
+    console.error("writeAuditLog failed (swallowed):", e?.message || e);
   }
 }
 

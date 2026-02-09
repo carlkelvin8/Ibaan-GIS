@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from '../../lib/axios.js';
 import { normalizeDate } from '../../lib/utils.js';
 import { useNavigate } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
+import Swal from "sweetalert2";
 
 // Helper utils
 const isEmpty = (v) => (v ?? "").toString().trim().length === 0;
@@ -261,11 +261,11 @@ export default function TaxForm() {
     try {
       if (row.id && row.taxid) {
         await api.delete(`/landappraisal/${row.taxid}/${row.id}`);
-        alert("Row deleted successfully!");
+        Swal.fire("Deleted!", "Row deleted successfully!", "success");
       }
     } catch (err) {
       console.error(err);
-      alert("Error deleting row");
+      Swal.fire("Error", "Error deleting row", "error");
     } finally {
       setLandAppraisal((rows) => rows.filter((_, i) => i !== index));
       setErrors((prev) => ({ ...prev, landAppraisal: (prev.landAppraisal || []).filter((_, i) => i !== index) }));
@@ -300,7 +300,7 @@ export default function TaxForm() {
         await api.post(`/landappraisal/${taxId}`, landAppraisal);
         await api.post(`/landassessment/${taxId}`, landAssessment);
         await api.post(`/taxotherdetails/${taxId}`, otherDetails);
-        alert("Tax updated successfully!");
+        Swal.fire("Success", "Tax updated successfully!", "success");
         localStorage.removeItem("parcelID");
       } else {
         const result = await api.post("/tax", formData);
@@ -308,12 +308,13 @@ export default function TaxForm() {
         await api.post(`/landappraisal/${taxId}`, landAppraisal);
         await api.post(`/landassessment/${taxId}`, landAssessment);
         await api.post(`/taxotherdetails/${taxId}`, otherDetails);
-        alert("Tax saved successfully!");
+        Swal.fire("Success", "Tax saved successfully!", "success");
       }
       navigate("/taxlist");
     } catch (error) {
-      console.error(error);
-      alert("Error saving data");
+      console.error("Tax form submission error:", error);
+      const msg = error.response?.data?.error || error.message || "Unknown error";
+      Swal.fire("Error", `Error saving data: ${msg}`, "error");
     } finally {
       setSaving(false);
     }

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import api from "../../lib/axios.js";
+import Swal from "sweetalert2";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "./Login.css";
@@ -74,7 +75,11 @@ export default function LoginForm() {
       navigate(redirectTo, { replace: true });
     } catch (e) {
       const msg = e?.response?.data?.error || "Login failed";
-      setErr(msg);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: msg,
+      });
     } finally {
       setLoading(false);
     }

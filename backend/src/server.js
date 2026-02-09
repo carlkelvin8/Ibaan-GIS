@@ -5,6 +5,8 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { database } from "./config/database.js";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpecs from "./config/swagger.js";
 
 // ----- Routes -----
 import alamedaRoutes from "./routes/alamedaRoute.js";
@@ -63,6 +65,8 @@ app.use(morgan("dev"));
 app.get("/api/health", (_req, res) =>
   res.json({ ok: true, ts: new Date().toISOString() })
 );
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 (async () => {
   try {

@@ -177,6 +177,15 @@ const LandParcelList = () => {
                         {busyNav ? "Opening…" : "View on Map"}
                       </Button>
                       <Button
+                        variant="info"
+                        size="sm"
+                        className="text-white"
+                        onClick={() => navigate(`/parcel-details/${encodeURIComponent(rowPid)}`)}
+                        disabled={busyDel}
+                      >
+                        Details
+                      </Button>
+                      <Button
                         variant="primary"
                         size="sm"
                         onClick={() => handleEdit(parcel)}

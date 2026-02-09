@@ -2,6 +2,8 @@ import "./Header.css";
 import React, { useMemo, useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useSession from "../../hooks/useSession";
+import Swal from "sweetalert2";
+import api from "../../lib/axios";
 
 function initialsOf(user) {
   if (!user) return "";
@@ -50,6 +52,43 @@ export default function Header() {
       document.removeEventListener("keydown", onKey);
     };
   }, []);
+
+  const handleLogout = async () => {
+    setOpen(false);
+    const { isConfirmed } = await Swal.fire({
+      icon: "warning",
+      title: "Log out?",
+      text: "You will need to log in again to access the app.",
+      confirmButtonText: "Yes, log out",
+      cancelButtonText: "Cancel",
+      showCancelButton: true,
+      reverseButtons: true,
+      focusCancel: true,
+    });
+    if (!isConfirmed) return;
+
+    try {
+      Swal.fire({
+        title: "Signing out…",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+      await api.post("/user/logout");
+    } catch (_) {
+      // ignore
+    } finally {
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      Swal.close();
+      await Swal.fire({
+        icon: "success",
+        title: "Signed out",
+        timer: 900,
+        showConfirmButton: false,
+      });
+      window.location.href = "/login";
+    }
+  };
 
   return (
     <header className="Header" role="banner">
@@ -115,9 +154,9 @@ export default function Header() {
               <button className="user-menu-item" onClick={() => { setOpen(false); navigate("/profile"); }}>
                 Profile
               </button>
-              <Link className="user-menu-item danger" to="/logout" onClick={() => setOpen(false)}>
+              <button className="user-menu-item danger" onClick={handleLogout}>
                 Logout
-              </Link>
+              </button>
             </div>
           </div>
         )}

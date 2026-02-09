@@ -99,9 +99,7 @@ export async function editById(req, res) {
     // Treat that as success (no-op) instead of 404.
     noStore(res);
     return res.status(200).json({
-      message: result.affectedRows > 0
-        ? "Building updated successfully"
-        : "No changes (already up to date)"
+      message: "Building updated successfully"
     });
   } catch (err) {
     console.error("Edit error ▶", err);
@@ -118,7 +116,7 @@ export async function deleteById(req, res) {
       'UPDATE building SET deleted_at = NOW() WHERE building_num = ? AND deleted_at IS NULL',
       [Number(id)]
     );
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       noStore(res);
       return res.status(404).json({ error: "Not found or already deleted" });
     }

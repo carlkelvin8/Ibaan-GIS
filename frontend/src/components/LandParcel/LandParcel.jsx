@@ -1,6 +1,7 @@
 import React, { useState,useEffect } from "react";
 import {  useNavigate } from "react-router-dom";
 import api from '../../lib/axios.js';
+import Swal from 'sweetalert2';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const LandParcel = () => {
@@ -44,16 +45,21 @@ const LandParcel = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let parcelID = localStorage.getItem("parcelID");
-    if (parcelID) {
-        await api.put(`/landparcel/${parcelID}`, parcel);
-        alert("Parcel updated successfully!");
-        localStorage.removeItem("parcelID");
-    } else {
-        await api.post("/landparcel", parcel);
-        alert("Parcel saved successfully!");
+    try {
+      let parcelID = localStorage.getItem("parcelID");
+      if (parcelID) {
+          await api.put(`/landparcel/${parcelID}`, parcel);
+          Swal.fire("Success", "Parcel updated successfully!", "success");
+          localStorage.removeItem("parcelID");
+      } else {
+          await api.post("/landparcel", parcel);
+          Swal.fire("Success", "Parcel saved successfully!", "success");
+      }
+      navigate("/landparcellist");
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to save parcel.", "error");
     }
-    navigate("/landparcellist");
   };
 
   return (

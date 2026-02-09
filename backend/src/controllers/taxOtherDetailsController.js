@@ -36,7 +36,7 @@ export async function upsertOtherDetails(req, res) {
         taxid,
       ]);
 
-      if (result.affectedRows === 0) {
+      if (result.rowCount === 0) {
         return res.status(404).json({ error: "Record not found" });
       }
 
@@ -46,7 +46,7 @@ export async function upsertOtherDetails(req, res) {
       const sql = `
         INSERT INTO tax_other_details 
         (taxId, taxability, effectivityYear, quarter, updateCode, dateRegistered)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?) RETURNING id
       `;
       const [result] = await database.execute(sql, [
         taxid,
@@ -57,7 +57,7 @@ export async function upsertOtherDetails(req, res) {
         formatDate(data.dateRegistered) || null
       ]);
 
-      return res.json({ message: "Other Details added successfully", id: result.insertId });
+      return res.json({ message: "Other Details added successfully", id: result[0].id });
     }
   } catch (err) {
     console.error("Error inserting/updating Other Details:", err);

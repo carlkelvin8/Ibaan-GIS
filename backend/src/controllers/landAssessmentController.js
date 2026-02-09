@@ -22,7 +22,7 @@ export async function upsertAssessmentSummary(req, res) {
       // Update existing record
       const sql = `
         UPDATE land_assessment_summary
-        SET propertyKind = ?, propertyActualUse = ?, adjustedMarketValue = ?, level = ?, assessedValue = ?
+        SET propertyKind = ?, propertyActualUse = ?, adjustedMarketValue = ?, \`level\` = ?, assessedValue = ?
         WHERE id = ? AND taxId = ?
       `;
       const [result] = await database.execute(sql, [
@@ -35,7 +35,7 @@ export async function upsertAssessmentSummary(req, res) {
         taxid,
       ]);
 
-      if (result.affectedRows === 0) {
+      if (result.rowCount === 0) {
         return res.status(404).json({ error: "Record not found" });
       }
 
@@ -44,8 +44,8 @@ export async function upsertAssessmentSummary(req, res) {
       // Insert new record
       const sql = `
         INSERT INTO land_assessment_summary 
-        (taxId, propertyKind, propertyActualUse, adjustedMarketValue, level, assessedValue)
-        VALUES (?, ?, ?, ?, ?, ?)
+        (taxId, propertyKind, propertyActualUse, adjustedMarketValue, \`level\`, assessedValue)
+        VALUES (?, ?, ?, ?, ?, ?) RETURNING id
       `;
       const [result] = await database.execute(sql, [
         taxid,
@@ -56,7 +56,7 @@ export async function upsertAssessmentSummary(req, res) {
         data.assessedValue || null,
       ]);
 
-      return res.json({ message: "Land Assessment Summary added successfully", id: result.insertId });
+      return res.json({ message: "Land Assessment Summary added successfully", id: result[0].id });
     }
   } catch (err) {
     console.error("Error inserting/updating Land Assessment Summary:", err);

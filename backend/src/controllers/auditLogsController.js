@@ -190,7 +190,7 @@ export async function deleteAuditLog(req, res) {
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'Invalid id' });
 
     const [result] = await database.execute('DELETE FROM audit_logs WHERE id = ?', [id]);
-    if (!result.affectedRows) return res.status(404).json({ error: 'Audit log not found' });
+    if (!result.rowCount) return res.status(404).json({ error: 'Audit log not found' });
     return res.json({ result: 1, message: 'Audit log deleted' });
   } catch (err) {
     console.error('[deleteAuditLog]', err);

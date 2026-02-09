@@ -56,7 +56,7 @@ export async function getAll(_req, res) {
     res.json(rows);
   } catch (err) {
     console.error("getAll error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -69,14 +69,14 @@ export async function getById(req, res) {
     const id = Number(idRaw);
 
     const [rows] = await database.query(
-      "SELECT * FROM ibaan WHERE ParcelId = ? LIMIT 1",
+      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
       [id]
     );
     if (!rows.length) return res.status(404).json({ error: "Data not found" });
     res.json(rows[0]);
   } catch (err) {
     console.error("getById error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -93,12 +93,12 @@ export async function addNew(req, res) {
     if (DBG) console.log("[ibaan.addNew] cols:", cols, "values:", values);
 
     await database.query(
-      `INSERT INTO ibaan (${cols.join(", ")}) VALUES (${placeholders})`,
+      `INSERT INTO ibaan (${cols.map(c => `"${c}"`).join(", ")}) VALUES (${placeholders})`,
       values
     );
 
     const [rows] = await database.query(
-      "SELECT * FROM ibaan WHERE ParcelId = ? LIMIT 1",
+      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
       [data.ParcelId]
     );
     const created = rows[0] || data;
@@ -121,7 +121,7 @@ export async function addNew(req, res) {
     res.status(201).json({ message: "Parcel created", data: created });
   } catch (err) {
     console.error("addNew error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -139,7 +139,7 @@ export async function editById(req, res) {
 
     // Get before state
     const [beforeRows] = await database.query(
-      "SELECT * FROM ibaan WHERE ParcelId = ? LIMIT 1",
+      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
       [id]
     );
     if (!beforeRows.length) return res.status(404).json({ error: "Data not found" });
@@ -150,26 +150,26 @@ export async function editById(req, res) {
     }
 
     // Build update query with proper escaping
-    const sets = Object.keys(patch).map((k) => `\`${k}\` = ?`).join(", ");
+    const sets = Object.keys(patch).map((k) => `"${k}" = ?`).join(", ");
     const values = Object.keys(patch).map((k) => patch[k]);
 
     if (DBG) console.log("[ibaan.update] id:", id, "patch:", patch, "sets:", sets, "values:", values);
 
     const [result] = await database.query(
-      `UPDATE ibaan SET ${sets} WHERE ParcelId = ?`,
+      `UPDATE ibaan SET ${sets} WHERE "ParcelId" = ?`,
       [...values, id]
     );
 
     if (DBG) console.log("[ibaan.update] result:", result);
 
     // Treat no-op updates as success to avoid confusion
-    if (!result.affectedRows) {
+    if (result.rowCount === 0) {
       return res.json({ message: "No changes", data: before });
     }
 
     // Get after state
     const [afterRows] = await database.query(
-      "SELECT * FROM ibaan WHERE ParcelId = ? LIMIT 1",
+      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
       [id]
     );
     const after = afterRows[0];
@@ -212,7 +212,7 @@ export async function editById(req, res) {
     res.json({ message: "Parcel updated successfully", data: after });
   } catch (err) {
     console.error("editById error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -226,17 +226,17 @@ export async function removeById(req, res) {
     const id = Number(idRaw);
 
     const [rows] = await database.query(
-      "SELECT * FROM ibaan WHERE ParcelId = ? LIMIT 1",
+      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
       [id]
     );
     if (!rows.length) return res.status(404).json({ error: "Data not found" });
     const before = rows[0];
 
     const [result] = await database.query(
-      "DELETE FROM ibaan WHERE ParcelId = ?",
+      'DELETE FROM ibaan WHERE "ParcelId" = ?',
       [id]
     );
-    if (!result.affectedRows) return res.status(404).json({ error: "Not found" });
+    if (!result.rowCount) return res.status(404).json({ error: "Not found" });
 
     try {
       await writeAuditLog({
@@ -256,7 +256,7 @@ export async function removeById(req, res) {
     res.json({ message: "Parcel deleted" });
   } catch (err) {
     console.error("removeById error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }
 
@@ -269,14 +269,14 @@ export async function search(req, res) {
     const needle = `%${raw}%`;
     const [rows] = await database.query(
       `SELECT * FROM ibaan
-       WHERE CAST(ParcelId AS CHAR) LIKE ?
-          OR Claimant LIKE ?
-          OR BarangayNa LIKE ?`,
+       WHERE CAST("ParcelId" AS TEXT) LIKE ?
+          OR "Claimant" LIKE ?
+          OR "BarangayNa" LIKE ?`,
       [needle, needle, needle]
     );
     res.json(rows);
   } catch (err) {
     console.error("search error:", err);
-    res.status(500).json({ error: err?.sqlMessage || err.message });
+    res.status(500).json({ error: err.message });
   }
 }

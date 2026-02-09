@@ -27,7 +27,8 @@ import SurveyReturns from "./SurveyReturns/SurveyReturns.jsx";
 import Geoportal from "./components/Geoportal/Geoportal";
 import GeoportalLogin from "./components/Geoportal/Login/Login.jsx";
 import MapPage from "./components/Map/MapPage";
-import Logs from "./components/Logs/logs.jsx";
+import ParcelFullDetails from "./components/Map/ParcelFullDetails";
+// import Logs from "./components/Logs/logs.jsx";
 import TaxpayerDashboard from "./components/Taxpayer/TaxpayerDashboard.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 
@@ -99,11 +100,12 @@ export default function App() {
         <Route path="buildinglist" element={<BuildingList />} />
         <Route path="taxform" element={<TaxForm />} />
         <Route path="taxlist" element={<TaxList />} />
-        <Route path="logs" element={<Logs />} />
+        {/* <Route path="logs" element={<Logs />} /> */}
         <Route path="surveyreturns" element={<SurveyReturns />} />
         <Route path="geoportal" element={<Geoportal />} />
         <Route path="map" element={<MapPage />} />
         <Route path="map/:parcelId" element={<MapPage />} />
+        <Route path="parcel-details/:parcelId" element={<ParcelFullDetails />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
         <Route path="settings" element={<Settings />} />
 

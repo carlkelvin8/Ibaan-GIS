@@ -111,6 +111,7 @@ export async function signup(req, res) {
     const officeVal = coerceNullableIntForDb(office_id);
     const muniVal = coerceNullableIntForDb(municipality_id);
 
+    // Postgres: use RETURNING id if you need it, though here we just return success
     await database.execute(
       `INSERT INTO users
        (username, first_name, last_name, email, password, role, status, office_id, municipality_id, created_at, updated_at)
@@ -241,20 +242,20 @@ export async function createUser(req, res) {
     const [result] = await database.execute(
       `INSERT INTO users
        (username, first_name, last_name, email, password, role, status, office_id, municipality_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) RETURNING id`,
       [username, first_name, last_name, email, hash, roleCode, status, officeVal, muniVal]
     );
 
     const [rows] = await database.execute(
       `SELECT id, username, first_name, last_name, email, role, status, office_id, municipality_id, created_at, updated_at
        FROM users WHERE id = ?`,
-      [result.insertId]
+      [result[0].id]
     );
 
     await logAudit(req, {
       action: "CREATE",
       entity: "users",
-      entityId: result.insertId,
+      entityId: result[0].id,
       statusCode: 201,
       details: { username, role: roleCode, status }
     });
@@ -264,7 +265,7 @@ export async function createUser(req, res) {
   } catch (err) {
     logSqlError('createUser', err);
     if (process.env.NODE_ENV !== 'production') {
-      return res.status(500).json({ error: err.sqlMessage || err.message });
+      return res.status(500).json({ error: err.message });
     }
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -388,7 +389,7 @@ export async function updateUser(req, res) {
   } catch (err) {
     logSqlError('updateUser', err);
     if (process.env.NODE_ENV !== 'production') {
-      return res.status(500).json({ error: err.sqlMessage || err.message });
+      return res.status(500).json({ error: err.message });
     }
     return res.status(500).json({ error: 'Internal server error' });
   }
@@ -407,7 +408,7 @@ export async function deleteUser(req, res) {
       [id]
     );
 
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       // No row changed — either it doesn't exist or is already deleted
       const [existsRows] = await database.execute(
         `SELECT id, deleted_at FROM users WHERE id = ? LIMIT 1`,

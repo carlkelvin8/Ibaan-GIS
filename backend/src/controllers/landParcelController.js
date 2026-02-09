@@ -25,10 +25,10 @@ export async function addNew(req, res) {
   try {
     const sql = `
       INSERT INTO LandParcel (
-        improvement, totalValue, StreetAddress, Barangay, Municipality, 
-        ZipCode, areaSize, propertyType, actualLandUse
+        "improvement", "totalValue", "StreetAddress", "Barangay", "Municipality", 
+        "ZipCode", "areaSize", "propertyType", "actualLandUse"
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING "parcelID"
     `;
 
     const [result] = await database.query(sql, [
@@ -43,7 +43,7 @@ export async function addNew(req, res) {
       actualLandUse
     ]);
 
-    res.json({ message: "LandParcel added successfully", parcelID: result.insertId });
+    res.json({ message: "LandParcel added successfully", parcelID: result[0].parcelID });
   } catch (err) {
     console.error("Error inserting data:", err);
     res.status(500).json({ error: "Database insert failed" });
@@ -52,8 +52,8 @@ export async function addNew(req, res) {
 
 export async function getById(req, res) {
   try {
-    const [data] = await database.execute(
-      "SELECT * FROM landparcel WHERE parcelID = ?",
+    const [data] = await database.query(
+      'SELECT * FROM landparcel WHERE "parcelID" = ?',
       [req.params.id]
     );
 
@@ -85,16 +85,16 @@ export async function editById(req, res) {
     const sql = `
       UPDATE LandParcel 
       SET 
-        improvement = ?, 
-        totalValue = ?, 
-        StreetAddress = ?, 
-        Barangay = ?, 
-        Municipality = ?, 
-        ZipCode = ?, 
-        areaSize = ?, 
-        propertyType = ?, 
-        actualLandUse = ?
-      WHERE parcelID = ?
+        "improvement" = ?, 
+        "totalValue" = ?, 
+        "StreetAddress" = ?, 
+        "Barangay" = ?, 
+        "Municipality" = ?, 
+        "ZipCode" = ?, 
+        "areaSize" = ?, 
+        "propertyType" = ?, 
+        "actualLandUse" = ?
+      WHERE "parcelID" = ?
     `;
 
     const [result] = await database.query(sql, [
@@ -110,7 +110,7 @@ export async function editById(req, res) {
       id
     ]);
 
-    if (result.affectedRows === 0) {
+    if (result.rowCount === 0) {
       return res.status(404).json({ error: "Not found" });
     }
 
@@ -126,7 +126,7 @@ export async function removeById(req, res) {
   try {
     const { id } = req.params;
     const [result] = await database.query(
-      "DELETE FROM landparcel WHERE parcelID = ?",
+      'DELETE FROM landparcel WHERE "parcelID" = ?',
       [id]
     );
 

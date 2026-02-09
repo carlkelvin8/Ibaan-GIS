@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import api from "../../lib/axios";
+import Swal from "sweetalert2";
 import UserForm from "../Admin/UserForm.jsx"; // create/edit form
 
 // helper: read from search params with defaults
@@ -113,14 +114,24 @@ export default function Dashboard() {
   };
 
   const onDeleteRow = async (row) => {
-    const ok = window.confirm(`Delete user "${row.username}"? This cannot be undone.`);
-    if (!ok) return;
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: `Delete user "${row.username}"? This cannot be undone.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'No, cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await api.delete(`/admin/users/${row.id}`);
+      Swal.fire('Deleted!', 'User has been deleted.', 'success');
       setReloadTick((t) => t + 1);
     } catch (e) {
       console.error(e);
-      alert(e?.response?.data?.error || "Failed to delete user.");
+      Swal.fire('Error', e?.response?.data?.error || "Failed to delete user.", 'error');
     }
   };
 
