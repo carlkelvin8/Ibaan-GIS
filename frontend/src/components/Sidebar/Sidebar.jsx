@@ -94,6 +94,33 @@ export default function Sidebar() {
   // Responsiveness
   const isMobile = useMediaQuery("(max-width: 767px)");
   const [isOpen, setIsOpen] = useLocalStorage("sb:isOpen", !isMobile);
+  const [profilePic, setProfilePic] = useState(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await api.get("/user/me");
+        const pic = res.data?.data?.profile_picture;
+        if (pic) {
+          // Construct full URL. 
+          // If pic starts with http, use it. 
+          // If it starts with /, append to API base URL (which serves static files at /api/uploads if configured)
+          if (pic.startsWith("http")) {
+            setProfilePic(pic);
+          } else {
+             // remove trailing slash from base if present, remove leading slash from pic if present
+             const baseUrl = api.defaults.baseURL?.replace(/\/+$/, "") || "";
+             const path = pic.startsWith("/") ? pic : `/${pic}`;
+             setProfilePic(`${baseUrl}${path}`);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch profile picture", err);
+      }
+    };
+    if (username) fetchProfile();
+  }, [username]);
+
   const firstRender = useRef(true);
   useEffect(() => {
     if (firstRender.current) {
@@ -113,67 +140,40 @@ export default function Sidebar() {
         label: "Accounting Office",
         icon: "bi-folder",
         items: [
-          { to: "/taxpayer", icon: "bi-person-badge", label: "Taxpayer Lot" },
-          { to: "/taxlist", icon: "bi-receipt", label: "Tax Forms" },
+          { to: "/taxlist", icon: "bi-receipt", label: "Tax Payer Lot" },
         ],
       },
       ...(isAdmin
         ? [
             {
               id: "admin",
-              label: "Admin",
+              label: "Administration",
               icon: "bi-shield-lock",
               items: [
-                {
-                  to: "/admin/dashboard",
-                  icon: "bi-speedometer2",
-                  label: "Dashboard",
-                },
-                { to: "/admin/users", icon: "bi-people", label: "Users" },
+                { to: "/admin/dashboard", icon: "bi-speedometer2", label: "Dashboard" },
+                { to: "/admin/logs", icon: "bi-clipboard-check", label: "Audit Logs" },
+                { to: "/admin/spatial-validation", icon: "bi-shield-check", label: "System Validation" },
               ],
             },
           ]
         : []),
-      {
-        id: "treasury",
-        label: "Treasury Office",
-        icon: "bi-folder",
-        items: [
-          { to: "/taxpayer", icon: "bi-person-badge", label: "Taxpayer Lot" },
-          { to: "/taxlist", icon: "bi-receipt", label: "Tax Forms" },
-        ],
-      },
       {
         id: "engineering",
         label: "Engineering Office",
         icon: "bi-folder",
         items: [
           { to: "/map", icon: "bi-geo-alt", label: "Ibaan Map" },
-          { to: "/parcel", icon: "bi-search", label: "Search Parcel" },
           { to: "/landparcellist", icon: "bi-geo", label: "Land Parcels" },
-          { to: "/taxlist", icon: "bi-receipt", label: "Tax Forms" },
           { to: "/buildinglist", icon: "bi-building", label: "Buildings" },
         ],
       },
       {
-        id: "planning",
-        label: "Planning & Development",
-        icon: "bi-clipboard-data",
-        single: { to: "" },
-      },
-      {
-        id: "swdo",
-        label: "Social Welfare & Development",
-        icon: "bi-folder",
-        items: [{ to: "/taxpayer", icon: "bi-person-badge", label: "CBMS" }],
-      },
-      {
         id: "layers",
-        label: "Layer",
+        label: "Layers",
         icon: "bi-layers",
         items: [
-          { to: "/taxpayer", icon: "bi-map", label: "Land Cover" },
-          { to: "/taxpayer", icon: "bi-droplet", label: "Water Bodies" },
+          { to: "/land-cover", icon: "bi-map", label: "Land Cover" },
+          { to: "/water-bodies", icon: "bi-droplet", label: "Water Bodies" },
         ],
       },
       {
@@ -182,66 +182,13 @@ export default function Sidebar() {
         icon: "bi-gear",
         single: { to: "/settings" },
       },
-      {
-        id: "logs",
-        label: "Audit Logs",
-        icon: "bi-clipboard-check",
-        single: { to: "/logs" },
-      },
     ];
     return base;
   }, [isAdmin]);
 
-  // Open-state per section (persisted)
-  const [openSections, setOpenSections] = useLocalStorage(
-    "sb:openSections",
-    () => {
-      const map = {};
-      sections.forEach((sec) => (map[sec.id] = false));
-      return map;
-    }
-  );
-
-  // Auto-open section when its route is active
-  useEffect(() => {
-    const path = location.pathname;
-    setOpenSections((prev) => {
-      const map = { ...prev };
-      sections.forEach((sec) => {
-        if (sec.items && sec.items.some((it) => path.startsWith(it.to))) {
-          map[sec.id] = true;
-        }
-      });
-      return map;
-    });
-  }, [location.pathname, sections, setOpenSections]);
-
-  // Search filter
-  const [q, setQ] = useState("");
-  const filterText = q.trim().toLowerCase();
-  const filteredSections = useMemo(() => {
-    if (!filterText) return sections;
-    return sections
-      .map((sec) => {
-        if (sec.single) {
-          const match = sec.label.toLowerCase().includes(filterText);
-          return match ? sec : null;
-        }
-        const items = (sec.items || []).filter((it) =>
-          (it.label || "").toLowerCase().includes(filterText)
-        );
-        if (items.length) return { ...sec, items };
-        if (sec.label.toLowerCase().includes(filterText)) return sec;
-        return null;
-      })
-      .filter(Boolean);
-  }, [sections, filterText]);
-
   // Helpers
   const navClass = ({ isActive }) => "nav-link" + (isActive ? " active" : "");
   const collapsedClass = !isMobile && !isOpen ? "is-collapsed" : "";
-  const toggleSection = (id) =>
-    setOpenSections((s) => ({ ...s, [id]: !s[id] }));
 
   const WithTip = ({ label, children }) => {
     if (isMobile || isOpen) return children;
@@ -251,30 +198,6 @@ export default function Sidebar() {
       </OverlayTrigger>
     );
   };
-
-  const SidebarButton = ({ icon, label, onClick, ariaExpanded }) => (
-    <WithTip label={label}>
-      <button
-        className="nav-link sb-toggle"
-        onClick={onClick}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onClick(e);
-          }
-        }}
-        aria-expanded={ariaExpanded}
-        aria-label={label}
-        type="button"
-      >
-        <i className={`bi ${icon}`} />
-        {isOpen && <span>{label}</span>}
-        {isOpen && (
-          <i className={`bi ${ariaExpanded ? "bi-chevron-up" : "bi-chevron-down"}`} />
-        )}
-      </button>
-    </WithTip>
-  );
 
   // SweetAlert2 logout with server call fallback
   const handleLogout = useCallback(async () => {
@@ -316,117 +239,58 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Mobile Backdrop */}
+      {isMobile && isOpen && (
+        <div 
+          className="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50"
+          style={{ zIndex: 899 }}
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
       {/* Mobile burger */}
-      {isMobile && (
+      {isMobile && !isOpen && (
         <button
           className="sb-burger"
-          onClick={() => setIsOpen((s) => !s)}
+          onClick={() => setIsOpen(true)}
           aria-label="Toggle navigation"
           type="button"
+          style={{ position: 'fixed', top: 12, left: 12, zIndex: 1100 }}
         >
-          <i className="bi bi-list" />
+          <i className="bi bi-list" style={{ fontSize: '1.5rem', color: '#1e293b' }} />
         </button>
       )}
 
       <aside
-        className={`Sidebar ${isMobile ? (isOpen ? "show" : "hide") : ""} ${collapsedClass}`}
+        className={`Sidebar ${isMobile ? (isOpen ? "show" : "is-collapsed") : collapsedClass}`}
         role="navigation"
         aria-label="Sidebar"
       >
-        <div
-          className="sb-frame"
-          style={{
-            width: isOpen ? `${OPEN_W}px` : isMobile ? `${OPEN_W}px` : `${COLLAPSED_W}px`,
-          }}
-        >
-          {/* Brand + Collapse toggle */}
-          <div className="sb-brand">
-            <div className="sb-logo">
-              <img src="/ibaan.svg" alt="Ibaan" />
-            </div>
-            {isOpen && <div className="sb-title">Ibaan GIS</div>}
-            {!isMobile && (
-              <button
-                className="sb-icon-btn ms-auto"
-                title={isOpen ? "Collapse" : "Expand"}
-                onClick={() => setIsOpen((s) => !s)}
-                aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-                type="button"
-              >
-                <i className={`bi ${isOpen ? "bi-chevron-left" : "bi-chevron-right"}`} />
-              </button>
-            )}
-          </div>
+        {/* Toggle Button (Desktop: Floating / Mobile: Hidden) */}
+        {!isMobile && (
+          <button
+            className="sb-icon-btn"
+            onClick={() => setIsOpen(!isOpen)}
+            title={isOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+          >
+            <i className={`bi bi-chevron-${isOpen ? "left" : "right"}`} style={{ fontSize: '14px', strokeWidth: '2px' }}></i>
+          </button>
+        )}
 
-          {/* User card */}
-          <div className="sb-user">
-            <div className="sb-avatar" aria-hidden="true">
-              {initials}
-            </div>
-            {isOpen && (
-              <div className="sb-user-text">
-                <div className="sb-user-name" title={username || "User"}>
-                  {username || "User"}
-                </div>
-                <div className="sb-user-role">{role || "GUEST"}</div>
-              </div>
-            )}
-            {!isMobile && !isOpen && (
-              <div className="sb-user-dot" title={role || "GUEST"} />
-            )}
-          </div>
-
-          {/* Search (desktop only) */}
-          {!isMobile && (
-            <div className="sb-search" style={{ padding: ".5rem .75rem" }}>
-              <WithTip label="Search">
-                <div className="input-group input-group-sm">
-                  <span className="input-group-text" id="sb-search-addon">
-                    <i className="bi bi-search" />
-                  </span>
-                  {isOpen ? (
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search…"
-                      aria-label="Search"
-                      aria-describedby="sb-search-addon"
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                    />
-                  ) : (
-                    <button
-                      className="btn btn-light"
-                      onClick={() => setIsOpen(true)}
-                      aria-label="Open search"
-                      type="button"
-                    >
-                      <i className="bi bi-search" />
-                    </button>
-                  )}
-                </div>
-              </WithTip>
-            </div>
-          )}
-
-          {/* Scroll area */}
-          <div className="sb-scroll">
-            <nav className="nav flex-column">
-              {/* Home */}
-              <WithTip label="Admin Dashboard">
-                <NavLink to="/" className={navClass}>
-                  <i className="bi bi-house" />
-                  {isOpen && <span>Admin Dashboard</span>}
-                </NavLink>
-              </WithTip>
-
+        <div className="sb-frame">
+          {/* Scrollable Navigation */}
+          <div className="flex-grow-1 overflow-auto" style={{ scrollbarWidth: 'none' }}>
+             <nav className="nav flex-column">
               {/* Dynamic sections */}
-              {filteredSections.map((sec) => {
+              {sections.map((sec) => {
                 // Single-link
                 if (sec.single) {
                   return (
                     <WithTip key={sec.id} label={sec.label}>
-                      <NavLink to={sec.single.to} className={navClass}>
+                      <NavLink 
+                        to={sec.single.to} 
+                        className={(props) => navClass(props) + (sec.className ? ` ${sec.className}` : "")}
+                      >
                         <i className={`bi ${sec.icon}`} />
                         {isOpen && <span>{sec.label}</span>}
                       </NavLink>
@@ -434,52 +298,60 @@ export default function Sidebar() {
                   );
                 }
 
-                // Collapsible section
-                const expanded = !!openSections[sec.id];
+                // Group section (Flat)
                 const items = sec.items || [];
                 return (
-                  <div key={sec.id}>
-                    <SidebarButton
-                      icon={sec.icon}
-                      label={sec.label}
-                      onClick={() => toggleSection(sec.id)}
-                      ariaExpanded={expanded}
-                    />
-                    <Collapse in={expanded}>
-                      <div className="sb-sub" id={`sec-${sec.id}`}>
-                        {items.map((it) => (
-                          <WithTip key={it.to} label={it.label}>
-                            <NavLink
-                              to={it.to}
-                              className={navClass}
-                              onClick={() => {
-                                if (isMobile) setIsOpen(false);
-                              }}
-                            >
-                              <i className={`bi ${it.icon}`} />
-                              {isOpen && <span>{it.label}</span>}
-                            </NavLink>
-                          </WithTip>
-                        ))}
-                      </div>
-                    </Collapse>
+                  <div key={sec.id} className="nav-group">
+                    {/* Section Header */}
+                    {isOpen && <div className="section-header">{sec.label}</div>}
+                    
+                    {items.map((it) => (
+                      <WithTip key={it.to} label={it.label}>
+                        <NavLink
+                          to={it.to}
+                          className={navClass}
+                          onClick={() => {
+                            if (isMobile) setIsOpen(false);
+                          }}
+                        >
+                          <i className={`bi ${it.icon}`} />
+                          {isOpen && <span>{it.label}</span>}
+                        </NavLink>
+                      </WithTip>
+                    ))}
                   </div>
                 );
               })}
             </nav>
           </div>
-
-          {/* Footer actions */}
-          <div className="sb-footer">
+          
+          {/* User Profile / Footer */}
+          <div className="user-profile">
+            <div className="user-avatar" style={{ overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", background: "#e9ecef" }}>
+              {profilePic ? (
+                <img 
+                  src={profilePic} 
+                  alt="Profile" 
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                />
+              ) : (
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#495057' }}>{initials}</span>
+              )}
+              {/* Fallback for error handling */}
+              <span style={{ display: 'none', fontSize: '14px', fontWeight: 'bold', color: '#495057' }}>{initials}</span>
+            </div>
+            <div className="user-info">
+              <span className="user-name" title={username}>{username}</span>
+            </div>
             <WithTip label="Logout">
               <button
                 type="button"
-                className="nav-link sb-toggle"
+                className="logout-btn"
                 onClick={handleLogout}
                 aria-label="Logout"
               >
-                <i className="bi bi-box-arrow-right" />
-                {isOpen && <span>Logout</span>}
+                <i className="bi bi-box-arrow-right" style={{ fontSize: '1.2rem' }} />
               </button>
             </WithTip>
           </div>

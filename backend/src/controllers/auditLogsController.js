@@ -20,12 +20,12 @@ function buildAuditWhere(query) {
   if (q && String(q).trim()) {
     const like = `%${String(q).trim()}%`;
     // meta is LONGTEXT; cast to CHAR for LIKE to avoid collation surprises
-    where.push('(a.username LIKE ? OR a.action LIKE ? OR a.entity LIKE ? OR CAST(a.meta AS CHAR) LIKE ?)');
+    where.push('(a.username LIKE ? OR a.action LIKE ? OR a.entity_type LIKE ? OR CAST(a.entity_ctx AS CHAR) LIKE ?)');
     params.push(like, like, like, like);
   }
   if (userId) { where.push('a.user_id = ?'); params.push(parseInt(userId, 10)); }
   if (action) { where.push('a.action = ?'); params.push(String(action)); }
-  if (entity) { where.push('a.entity = ?'); params.push(String(entity)); }
+  if (entity) { where.push('a.entity_type = ?'); params.push(String(entity)); }
   if (dateFrom) { where.push('a.created_at >= ?'); params.push(`${dateFrom} 00:00:00`); }
   if (dateTo)   { where.push('a.created_at <= ?'); params.push(`${dateTo} 23:59:59`); }
 
@@ -48,7 +48,7 @@ export async function listAuditLogs(req, res) {
       id: 'a.id',
       userId: 'a.user_id',
       action: 'a.action',
-      entity: 'a.entity',
+      entity: 'a.entity_type',
       createdAt: 'a.created_at',
       ts: 'a.created_at',
     };
@@ -69,11 +69,10 @@ export async function listAuditLogs(req, res) {
         a.user_id AS userId,
         a.username,
         a.action,
-        a.entity,
-        a.entity_id AS entityId,
+        a.entity_type AS entity,
         a.ip,
-        COALESCE(a.user_agent, a.ua) AS ua,
-        a.meta,
+        a.user_agent AS ua,
+        a.entity_ctx AS meta,
         a.created_at AS ts
       FROM audit_logs a
       ${whereSql}
@@ -128,11 +127,10 @@ export async function getAuditLogById(req, res) {
          a.user_id AS userId,
          a.username,
          a.action,
-         a.entity,
-         a.entity_id AS entityId,
+         a.entity_type AS entity,
          a.ip,
-         COALESCE(a.user_agent, a.ua) AS ua,
-         a.meta,
+         a.user_agent AS ua,
+         a.entity_ctx AS meta,
          a.created_at AS ts
        FROM audit_logs a
        WHERE a.id = ?`,
@@ -207,7 +205,7 @@ export async function exportAuditLogsCsv(req, res) {
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
 
     const headers = [
-      'id','ts','userId','username','action','entity','entityId','ip','ua','meta'
+      'id','ts','userId','username','action','entity','ip','ua','meta'
     ];
     res.write(headers.join(',') + '\n');
 
@@ -222,7 +220,6 @@ export async function exportAuditLogsCsv(req, res) {
         a.username,
         a.action,
         a.entity,
-        a.entity_id AS entityId,
         a.ip,
         COALESCE(a.user_agent, a.ua) AS ua,
         a.meta
@@ -244,7 +241,6 @@ export async function exportAuditLogsCsv(req, res) {
         csvEscape(r.username),
         csvEscape(r.action),
         csvEscape(r.entity),
-        csvEscape(r.entityId),
         csvEscape(r.ip),
         csvEscape(r.ua),
         csvEscape(meta),

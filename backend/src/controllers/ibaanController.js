@@ -52,8 +52,24 @@ function slim(row = {}) {
 /* ===== READ ===== */
 export async function getAll(_req, res) {
   try {
-    const [rows] = await database.query("SELECT * FROM ibaan");
-    res.json(rows);
+    // Transform geometry to 4326 (WGS84) for Leaflet using EPSG:3123 (Zone 3) based on user config
+    // Left join tax_forms using ibaan.ParcelId = tax_forms.parcelId to ensure we see the link
+    const [rows] = await database.query(`
+      SELECT 
+        i.*, 
+        ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(i.geometry), 3123), 4326))::jsonb AS geojson,
+        COALESCE(CAST(tf.id AS TEXT), CAST(i."tax_ID" AS TEXT)) as resolved_tax_id
+      FROM ibaan i
+      LEFT JOIN tax_forms tf ON CAST(i."ParcelId" AS TEXT) = CAST(tf."parcelId" AS TEXT)
+    `);
+
+    // Overlay resolved_tax_id onto tax_ID
+    const results = rows.map(r => ({
+      ...r,
+      tax_ID: r.resolved_tax_id
+    }));
+
+    res.json(results);
   } catch (err) {
     console.error("getAll error:", err);
     res.status(500).json({ error: err.message });
@@ -69,11 +85,21 @@ export async function getById(req, res) {
     const id = Number(idRaw);
 
     const [rows] = await database.query(
-      'SELECT * FROM ibaan WHERE "ParcelId" = ? LIMIT 1',
+      `SELECT 
+         i.*, 
+         ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(i.geometry), 3123), 4326))::jsonb AS geojson,
+         COALESCE(CAST(tf.id AS TEXT), CAST(i."tax_ID" AS TEXT)) as resolved_tax_id
+       FROM ibaan i
+       LEFT JOIN tax_forms tf ON CAST(i."ParcelId" AS TEXT) = CAST(tf."parcelId" AS TEXT)
+       WHERE i."ParcelId" = ? LIMIT 1`,
       [id]
     );
     if (!rows.length) return res.status(404).json({ error: "Data not found" });
-    res.json(rows[0]);
+    
+    const row = rows[0];
+    row.tax_ID = row.resolved_tax_id;
+    
+    res.json(row);
   } catch (err) {
     console.error("getById error:", err);
     res.status(500).json({ error: err.message });
@@ -144,6 +170,8 @@ export async function editById(req, res) {
     );
     if (!beforeRows.length) return res.status(404).json({ error: "Data not found" });
     const before = beforeRows[0];
+    
+    if (DBG) console.log("[ibaan.editById] Existing keys:", Object.keys(before));
 
     if (!Object.keys(patch).length) {
       return res.status(400).json({ error: "No updatable fields provided" });
@@ -267,16 +295,36 @@ export async function search(req, res) {
     if (!raw) return res.json([]);
 
     const needle = `%${raw}%`;
+    // Join with tax_forms to search by ARP Number as well
     const [rows] = await database.query(
-      `SELECT * FROM ibaan
-       WHERE CAST("ParcelId" AS TEXT) LIKE ?
-          OR "Claimant" LIKE ?
-          OR "BarangayNa" LIKE ?`,
-      [needle, needle, needle]
+      `SELECT i.*, 
+              ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(i.geometry), 3123), 4326))::jsonb AS geojson 
+       FROM ibaan i
+       LEFT JOIN tax_forms t ON i."tax_ID" = t.id
+       WHERE CAST(i."ParcelId" AS TEXT) ILIKE ?
+          OR i."Claimant" ILIKE ?
+          OR i."BarangayNa" ILIKE ?
+          OR t."arpNo" ILIKE ?`,
+      [needle, needle, needle, needle]
     );
     res.json(rows);
   } catch (err) {
     console.error("search error:", err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+export async function getByTaxId(req, res) {
+  try {
+    const taxId = req.params.taxId;
+    const [rows] = await database.query(
+      'SELECT "ParcelId" FROM ibaan WHERE "tax_ID" = ? LIMIT 1',
+      [taxId]
+    );
+    if (!rows.length) return res.json({ parcelId: null });
+    res.json({ parcelId: rows[0].ParcelId });
+  } catch (err) {
+    console.error("getByTaxId error:", err);
     res.status(500).json({ error: err.message });
   }
 }

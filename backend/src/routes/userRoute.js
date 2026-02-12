@@ -8,8 +8,10 @@ import {
   forgotPassword,
   verifyResetToken,
   resetPassword,
+  uploadAvatar,
 } from '../controllers/userController.js';
 import { authRequired, requireRole } from '../middleware/auth.js';
+import { upload } from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -143,6 +145,7 @@ router.get ('/user/me',     authRequired, me);
 /* ---------- Me (profile & password) ---------- */
 router.patch('/user/me',          authRequired, updateMyProfile);
 router.post ('/user/me/password', authRequired, changeMyPassword);
+router.post ('/user/me/avatar',   authRequired, upload.single('avatar'), uploadAvatar);
 
 /**
  * @swagger

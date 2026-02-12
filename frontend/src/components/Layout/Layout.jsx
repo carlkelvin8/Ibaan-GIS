@@ -11,7 +11,7 @@ const DashboardLayout = () => {
       <Sidebar />
       <main
         className="flex-grow-1 p-4 bg-white"
-        style={{ height: '100vh', overflowY: 'auto', marginTop: '60px' }}
+        style={{ height: 'calc(100vh - 60px)', overflowY: 'auto', marginTop: '60px' }}
       >
         <Outlet /> {/* This is where child routes render */}
       </main>

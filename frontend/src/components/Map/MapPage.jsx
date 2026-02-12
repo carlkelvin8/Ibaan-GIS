@@ -36,21 +36,71 @@ function makeOnEach(layerLabel) {
   return (feature, layer) => {
     const props = feature.properties || {};
     const original = { ...layer.options };
+
+    // Common styling interaction
     layer.on({
       mouseover: () => {
-        try { layer.setStyle({ ...original, color: "#F2C200", weight: (original.weight || 2) + 1 }); } catch {}
+        try { layer.setStyle({ ...original, color: "#F2C200", weight: (original.weight || 2) + 1, fillOpacity: (original.fillOpacity || 0) + 0.1 }); } catch {}
       },
       mouseout: () => {
         try { layer.setStyle(original); } catch {}
       },
     });
-    layer.bindPopup(
-        `<div style="font-size:13px;line-height:1.4;">
-         <strong>${layerLabel.toUpperCase()}</strong><br/>
-         ${Object.entries(props).slice(0, 12).map(([k,v]) => `<div><b>${k}:</b> ${v}</div>`).join("")}
-       </div>`,
-        { maxWidth: 320 }
-    );
+
+    // Custom content generation based on layer type
+    let title = layerLabel.toUpperCase();
+    let content = "";
+
+    if (layerLabel === "municipality") {
+      title = `MUNICIPALITY OF ${props.NAME_2 || "IBAAN"}`;
+      content = `
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;">
+          <div style="color:#666;">Province:</div><div style="font-weight:600;">${props.NAME_1 || "Batangas"}</div>
+          <div style="color:#666;">Region:</div><div style="font-weight:600;">${props.Region || "IV-A"}</div>
+          <div style="color:#666;">Classification:</div><div>${props.ENGTYPE_2 || "Municipality"}</div>
+          <div style="color:#666;">Zip Code:</div><div>4230</div>
+        </div>
+      `;
+    } else if (layerLabel === "road") {
+      title = props.name || props.ref || "ROAD SEGMENT";
+      content = `
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;">
+          <div style="color:#666;">Type:</div><div>${props.highway || "Unknown"}</div>
+          ${props.surface ? `<div style="color:#666;">Surface:</div><div>${props.surface}</div>` : ""}
+          ${props.lanes ? `<div style="color:#666;">Lanes:</div><div>${props.lanes}</div>` : ""}
+          ${props.maxspeed ? `<div style="color:#666;">Speed Limit:</div><div>${props.maxspeed} km/h</div>` : ""}
+        </div>
+      `;
+    } else if (layerLabel === "river") {
+      title = props.RIVER_NAME || "WATER BODY";
+      content = `<div style="font-size:13px;color:#666;">River/Stream segment</div>`;
+    } else if (layerLabel === "bf") {
+      title = props.name || props.amenity || "BUILDING";
+      content = `
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px;">
+          ${props.amenity ? `<div style="color:#666;">Amenity:</div><div>${props.amenity.replace('_', ' ')}</div>` : ""}
+          ${props.building ? `<div style="color:#666;">Type:</div><div>${props.building}</div>` : ""}
+        </div>
+      `;
+    } else {
+      // Fallback for generic layers
+      content = Object.entries(props)
+        .slice(0, 8)
+        .filter(([k, v]) => v != null && k !== "id")
+        .map(([k,v]) => `<div><b style="color:#555;">${k}:</b> ${v}</div>`)
+        .join("");
+    }
+
+    const html = `
+      <div style="min-width:200px;font-family:'Inter',sans-serif;">
+        <div style="border-bottom:2px solid #0b5faa;padding-bottom:8px;margin-bottom:8px;">
+          <strong style="font-size:14px;color:#0b5faa;">${title}</strong>
+        </div>
+        ${content}
+      </div>
+    `;
+
+    layer.bindPopup(html, { maxWidth: 320, className: "custom-popup" });
   };
 }
 
@@ -103,11 +153,10 @@ function ZoomAfterRender({ zoom = 18, delayMs = 140 }) {
   return null;
 }
 
-/* ----------------------- Search Control (Parcel / Lot) ---------------------- */
+/* ----------------------- Search Control (Unified) ---------------------- */
 function SearchControl({
   showSearch, setShowSearch,
   searchValue, setSearchValue,
-  searchField, setSearchField,
   submitSearch,
   userCollapsed, setUserCollapsed,
 }) {
@@ -153,62 +202,141 @@ function SearchControl({
   const IconButton = (
     <button
       onClick={() => { setUserCollapsed(false); setShowSearch(true); }}
-      title="Search parcels" aria-label="Open search" className="sp-iconbtn"
-    >🔍</button>
+      title="Search parcels" 
+      aria-label="Open search" 
+      className="sp-iconbtn"
+      style={{
+        width: 48, height: 48, borderRadius: "50%",
+        background: "#fff", border: "none",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+        color: "#0b5faa", fontSize: 20,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", transition: "transform 0.2s"
+      }}
+      onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+      onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+    >
+      <i className="bi bi-search"></i>
+    </button>
   );
 
   const Panel = (
     <div style={{
-      padding: 8, background: "#fff", border: 0, borderRadius: 12,
-      boxShadow: "0 6px 18px rgba(0,0,0,.16)", display: "flex",
-      flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap", maxWidth: "100%",
+      background: "rgba(255, 255, 255, 0.9)",
+      backdropFilter: "blur(12px)",
+      padding: "6px", 
+      borderRadius: "50px",
+      boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+      display: "flex", alignItems: "center", gap: 8,
+      border: "1px solid rgba(255,255,255,0.4)",
+      maxWidth: "460px",
+      width: "90vw",
+      transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)"
     }}>
-      <form onSubmit={submitSearch} style={{ display: "flex", flex: 1, gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-        <select
-          value={searchField} onChange={(e) => setSearchField(e.target.value)} aria-label="Search field"
-          style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #c7ccd1", fontSize: 14 }}
+      <form 
+        onSubmit={submitSearch} 
+        style={{ display: "flex", flex: 1, alignItems: "center", position: "relative" }}
+      >
+        <button 
+            type="submit"
+            aria-label="Search"
+            style={{ 
+                position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)",
+                background: "#0b5faa", color: "white", border: "none",
+                width: 38, height: 38, borderRadius: "50%",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", zIndex: 2,
+                boxShadow: "0 4px 10px rgba(11, 95, 170, 0.3)",
+                transition: "transform 0.2s, box-shadow 0.2s"
+            }}
+            onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-50%) scale(1.05)";
+                e.currentTarget.style.boxShadow = "0 6px 14px rgba(11, 95, 170, 0.4)";
+            }}
+            onMouseLeave={e => {
+                e.currentTarget.style.transform = "translateY(-50%) scale(1)";
+                e.currentTarget.style.boxShadow = "0 4px 10px rgba(11, 95, 170, 0.3)";
+            }}
         >
-          <option value="parcel">Parcel ID</option>
-          <option value="lot">Lot Number</option>
-        </select>
-
-        <div style={{ position: "relative", flex: 1, minWidth: 160 }}>
-          <input
-            type="text"
-            placeholder={searchField === "parcel" ? "Enter Parcel ID…" : "Enter Lot Number…"}
-            value={searchValue} onChange={(e) => setSearchValue(e.target.value)}
-            aria-label={searchField === "parcel" ? "Parcel ID" : "Lot Number"}
-            style={{ width: "100%", padding: "8px 36px 8px 12px", borderRadius: 10, border: "1px solid #c7ccd1", outline: "none", fontSize: 14 }}
-          />
-          {hasText && (
-            <button
-              type="button" aria-label="Clear" onClick={() => setSearchValue("")}
-              style={{
-                position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                width: 24, height: 24, borderRadius: 12, border: 0, background: "#fff", cursor: "pointer", lineHeight: "20px",
-              }}
-            >×</button>
-          )}
-        </div>
-
-        <button
-          type="submit" disabled={!hasText}
-          style={{
-            padding: "8px 14px", borderRadius: 10, border: 0,
-            background: hasText ? "#0b5faa" : "#9bb8d4", color: "#fff", fontWeight: 700,
-            cursor: hasText ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 8, fontSize: 14,
-          }}
-        >
-          <span style={{ fontSize: 16 }}>🔎</span> Search
+            <i className="bi bi-search" style={{ fontSize: 16 }}></i>
         </button>
+        
+        <input
+          type="text"
+          placeholder="Search Parcel ID, Lot No, or Owner..."
+          value={searchValue} 
+          onChange={(e) => setSearchValue(e.target.value)}
+          aria-label="Search"
+          style={{ 
+            width: "100%", 
+            padding: "14px 40px 14px 54px", 
+            borderRadius: "30px", 
+            border: "2px solid transparent", 
+            outline: "none", 
+            fontSize: 15,
+            background: "#f1f3f5",
+            color: "#212529",
+            fontWeight: 500,
+            transition: "all 0.2s"
+          }}
+          onFocus={e => {
+            e.target.style.background = "#fff";
+            e.target.style.borderColor = "#0b5faa";
+            e.target.style.boxShadow = "0 0 0 4px rgba(11, 95, 170, 0.1)";
+          }}
+          onBlur={e => {
+            e.target.style.background = "#f1f3f5";
+            e.target.style.borderColor = "transparent";
+            e.target.style.boxShadow = "none";
+          }}
+        />
+        
+        {hasText && (
+          <button
+            type="button" 
+            aria-label="Clear" 
+            onClick={() => setSearchValue("")}
+            style={{
+              position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+              width: 24, height: 24, borderRadius: "50%", border: "none",
+              background: "#dee2e6", color: "#495057", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16, transition: "background 0.2s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = "#ced4da"}
+            onMouseLeave={e => e.currentTarget.style.background = "#dee2e6"}
+          >
+            <i className="bi bi-x"></i>
+          </button>
+        )}
       </form>
 
       <button
         onClick={() => { setShowSearch(false); setUserCollapsed(true); }}
-        title="Hide search" aria-label="Hide search"
-        style={{ padding: "8px 10px", borderRadius: 10, border: 0, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}
+        title="Hide search" 
+        aria-label="Hide search"
+        style={{ 
+            padding: "0 16px", 
+            height: "40px",
+            borderRadius: "20px", 
+            border: "none", 
+            background: "transparent", 
+            color: "#6c757d", 
+            cursor: "pointer", 
+            fontWeight: 600,
+            fontSize: 14,
+            transition: "all 0.2s"
+        }}
+        onMouseEnter={e => {
+            e.currentTarget.style.color = "#343a40";
+            e.currentTarget.style.background = "rgba(0,0,0,0.05)";
+        }}
+        onMouseLeave={e => {
+            e.currentTarget.style.color = "#6c757d";
+            e.currentTarget.style.background = "transparent";
+        }}
       >
-        Hide
+        Close
       </button>
     </div>
   );
@@ -216,16 +344,7 @@ function SearchControl({
   const ui = (
     <>
       <style>{`
-        .custom-search-ctl { background: transparent!important; border: 0!important; box-shadow: none!important; }
-        .custom-search-ctl .sp-root { margin-top: 8px; }
-        .sp-iconbtn{
-          width: 22px; height: 22px; border-radius: 50%;
-          border: 0; outline: none; background: #fff; cursor: pointer;
-          box-shadow: 0 2px 8px rgba(0,0,0,.18);
-          display: flex; align-items: center; justify-content: center;
-          font-size: 16px; line-height: 1;
-        }
-        @media (max-width: 520px){ .sp-card{ width: min(92vw, 380px); } }
+        .custom-search-ctl { background: transparent!important; border: 0!important; box-shadow: none!important; margin-right: 12px; margin-top: 12px; }
       `}</style>
       <div className="sp-root">{visible ? Panel : IconButton}</div>
     </>
@@ -263,11 +382,36 @@ export default function MapPage() {
 
   const byParcelRef = useRef(new Map());
   const byLotRef = useRef(new Map());
+  const byOwnerRef = useRef(new Map());
 
-  const MAX_ZOOM = 19;
+  const MAX_ZOOM = 22;
   const fallbackCenter = useMemo(() => [13.8, 121.14], []);
-  const baseStyle = useMemo(() => ({ color: "#1e73be", weight: 1.25, fillOpacity: 0.22 }), []);
-  const hoverStyle = useMemo(() => ({ color: "#F2C200", weight: 2, fillOpacity: 0.28 }), []);
+  
+  // Classification Colors
+  const getClassColor = (cls) => {
+    const c = (cls || "").toLowerCase().trim();
+    if (c.includes("residential")) return "#FFFF00"; // Yellow
+    if (c.includes("commercial")) return "#FF7800"; // Orange
+    if (c.includes("agricultural")) return "#33a02c"; // Green
+    if (c.includes("industrial")) return "#6a3d9a"; // Purple
+    if (c.includes("institutional")) return "#1f78b4"; // Blue
+    if (c.includes("special")) return "#a6cee3"; // Light Blue
+    return "#cccccc"; // Gray default
+  };
+
+  const baseStyle = useCallback((feature) => {
+    const props = feature?.properties || {};
+    const isDelinquent = props.delinquent === true || props.delinquent === "true";
+    return {
+      color: isDelinquent ? "#ff0000" : "#1e73be",
+      weight: isDelinquent ? 2.5 : 1.25,
+      dashArray: isDelinquent ? "4,2" : null,
+      fillColor: getClassColor(props.classification),
+      fillOpacity: 0.6
+    };
+  }, []);
+
+  const hoverStyle = useMemo(() => ({ color: "#F2C200", weight: 3, fillOpacity: 0.7 }), []);
   const selectedStyle = useMemo(() => ({ color: "#F2C200", weight: 3, fillOpacity: 0.35 }), []);
   const overlayStyle = useMemo(() => ({ color: "#ff7f0e", weight: 3.5, fillOpacity: 0.28, dashArray: "4,2" }), []);
 
@@ -322,28 +466,15 @@ export default function MapPage() {
     setSelectedPid(pid || "");
   }, [baseStyle, selectedStyle]);
 
-  /* ----------------------------- Load parcels (your existing API) ----------------------------- */
+  /* ----------------------------- Load parcels (Step 4 API) ----------------------------- */
   useEffect(() => {
     (async () => {
       setLoading(true);
       setErr(null);
       try {
-        const res = await api.get("/ibaan");
-        const rows = Array.isArray(res.data) ? res.data : [res.data];
+        const res = await api.get("/map/parcels");
+        const fcBuilt = res.data; // Expecting FeatureCollection from backend
 
-        const features = rows
-          .map((row) => {
-            let geom = row.geometry;
-            if (typeof geom === "string" && geom.trim()) {
-              try { geom = JSON.parse(geom); } catch { geom = null; }
-            }
-            if (!geom) return null;
-            const { geometry, ...props } = row;
-            return { type: "Feature", properties: props, geometry: geom };
-          })
-          .filter(Boolean);
-
-        const fcBuilt = { type: "FeatureCollection", features };
         setFC(fcBuilt);
 
         setTimeout(() => {
@@ -390,7 +521,7 @@ export default function MapPage() {
   function getPidFromProps(p = {}) {
     for (const k of [
       "ParcelId","parcelId","PARCELID","parcelID","parcelid",
-      "parcel_id","PARCEL_ID","PID","pid"
+      "parcel_id","PARCEL_ID","PID","pid", "id", "parcel_number"
     ]) {
       const v = p[k];
       if (v != null && String(v).trim() !== "") return String(v).trim();
@@ -443,43 +574,120 @@ export default function MapPage() {
   );
 
   /* ----------------------------- Submit search ----------------------------- */
-  const submitSearch = (e) => {
+  const submitSearch = async (e) => {
     e?.preventDefault?.();
     const term = toStr(searchValue);
+    
+    // Dynamic import for SweetAlert2
+    const Swal = (await import("sweetalert2")).default;
+
     if (!term) {
-      alert(`Please enter a valid ${searchField === "parcel" ? "Parcel ID" : "Lot Number"}.`);
+      Swal.fire("Info", "Please enter a valid search term.", "info");
       return;
     }
 
     let targetLayer = null;
     let targetFeature = null;
 
-    if (searchField === "parcel") {
-      targetLayer = byParcelRef.current.get(normKey(term)) || null;
-      if (!targetLayer) {
+    // 1. Client-side Search (Try all in order)
+    
+    // A. Parcel ID (Exact Match)
+    targetLayer = byParcelRef.current.get(normKey(term)) || null;
+    if (!targetLayer) {
+        // Try loose check on keys
         for (const [key, lyr] of byParcelRef.current.entries()) {
-          if (String(key).toLowerCase() === String(term).toLowerCase()) { targetLayer = lyr; break; }
+            if (String(key).toLowerCase() === String(term).toLowerCase()) { targetLayer = lyr; break; }
         }
-      }
-      if (targetLayer) targetFeature = targetLayer.feature ?? null;
-    } else {
-      const matches = byLotRef.current.get(normKey(term));
-      if (matches?.length) {
-        targetLayer = matches[0];
-        targetFeature = targetLayer.feature ?? null;
-        if (matches.length > 1) {
-          const list = matches.slice(0, 6).map((l, i) => {
-            const pid = getPidFromProps(l.feature?.properties || {});
-            return `${i + 1}. Parcel ${pid || "—"}`;
-          }).join("\n");
-          alert(`Multiple parcels share Lot "${term}". Showing the first match.\n\nOther matches:\n${list}${matches.length > 6 ? "\n…" : ""}`);
-        }
-      }
     }
 
+    // B. Lot Number (Exact Match)
     if (!targetLayer) {
+        const matches = byLotRef.current.get(normKey(term));
+        if (matches?.length) {
+            targetLayer = matches[0];
+            if (matches.length > 1) {
+                const list = matches.slice(0, 6).map((l, i) => {
+                    const pid = getPidFromProps(l.feature?.properties || {});
+                    return `${i + 1}. Parcel ${pid || "—"}`;
+                }).join("\n");
+                // Don't block, just show toast or let it pick first but notify
+                // Swal.fire("Info", `Multiple parcels share Lot "${term}". Showing the first match.\n\nOther matches:\n${list}${matches.length > 6 ? "\n…" : ""}`, "info");
+            }
+        }
+    }
+
+    // C. Owner Name (Exact or Partial)
+    if (!targetLayer) {
+        const termLower = normKey(term);
+        let matches = byOwnerRef.current.get(termLower) || [];
+        
+        // If no exact match, try partial scan
+        if (!matches.length) {
+            for (const [key, layers] of byOwnerRef.current.entries()) {
+                if (key.includes(termLower)) {
+                    matches = matches.concat(layers);
+                }
+            }
+        }
+
+        if (matches?.length) {
+            targetLayer = matches[0];
+            // If multiple, maybe show list? For now pick first.
+        }
+    }
+
+    if (targetLayer) targetFeature = targetLayer.feature ?? null;
+
+    // 2. Server-side Search Fallback (Unified generic search)
+    if (!targetLayer) {
+      try {
+        const res = await api.get(`/map/search?q=${encodeURIComponent(term)}`);
+        const features = res.data?.features || [];
+        
+        if (features.length > 0) {
+           const newFeatures = features.filter(f => {
+               const pid = getPidFromProps(f.properties);
+               return pid && !byParcelRef.current.has(normKey(pid));
+           });
+           
+           if (newFeatures.length > 0) {
+               setFC(prev => ({
+                   ...prev,
+                   features: [...(prev?.features || []), ...newFeatures]
+               }));
+           }
+           
+           // Use the first match to set pendingKey
+           const first = features[0];
+           const pid = getPidFromProps(first.properties);
+           if (pid) {
+               setPendingKey(normKey(pid));
+               setShowSearch(false);
+               
+               // Retry logic to wait for the layer to be mounted and registered
+               let retries = 0;
+               const maxRetries = 20; 
+               const interval = setInterval(() => {
+                   const k = normKey(pid);
+                   const lyr = byParcelRef.current.get(k);
+                   if (lyr) {
+                       clearInterval(interval);
+                       setSelectedLayer(lyr, pid);
+                       focusOpenAndHighlight(lyr, first);
+                   } else {
+                       retries++;
+                       if (retries >= maxRetries) clearInterval(interval);
+                   }
+               }, 50); 
+               return; 
+           }
+        }
+      } catch (err) {
+        console.error("Server search failed", err);
+      }
+
       const sample = Array.from(byParcelRef.current.keys()).slice(0, 8).join(", ");
-      alert(`${searchField === "parcel" ? "Parcel" : "Lot"} "${term}" not found.\n\nSample Parcel IDs: ${sample || "—"}`);
+      Swal.fire("Not Found", `No results found for "${term}".\n\nTry searching for a valid Parcel ID, Lot Number, or Owner Name.`, "warning");
       return;
     }
 
@@ -616,32 +824,34 @@ export default function MapPage() {
     const uidTax = `open-tax-${layer._leaflet_id}`;
     const uidParcel = `open-parcel-${layer._leaflet_id}`;
     const html = `
-      <div style="font-size:13px;line-height:1.4;max-width:280px;">
-        <div style="border-bottom:1px solid #e0e6ed;padding-bottom:8px;margin-bottom:8px;">
-          <strong style="font-size:14px;color:#0b5faa;">${p.BarangayNa ?? p.barangayna ?? "Parcel Information"}</strong>
+      <div class="sp-popup-content">
+        <div class="sp-popup-header">
+          <div class="sp-popup-icon"><i class="bi bi-geo-alt-fill"></i></div>
+          <div class="sp-popup-title">
+            <span>${p.BarangayNa ?? p.barangayna ?? "Parcel Information"}</span>
+            <small>Selected Property</small>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:8px;">
-          ${pid ? `<div><strong>Parcel ID:</strong></div><div>${pid}</div>` : ""}
-          ${lot ? `<div><strong>Lot:</strong></div><div>${lot}</div>` : ""}
-          ${p.BlockNumber ?? p.blocknumber ? `<div><strong>Block:</strong></div><div>${p.BlockNumber ?? p.blocknumber}</div>` : ""}
-          ${p.Area ?? p.area ? `<div><strong>Area:</strong></div><div>${p.Area ?? p.area}</div>` : ""}
-          ${p.Claimant ?? p.claimant ? `<div><strong>Claimant:</strong></div><div style="word-break:break-word;">${p.Claimant ?? p.claimant}</div>` : ""}
-          ${p.TiePointNa ?? p.tiepointna ? `<div><strong>Tie Point:</strong></div><div>${p.TiePointNa ?? p.tiepointna}</div>` : ""}
-          ${p.SurveyPlan ?? p.surveyplan ? `<div><strong>Survey Plan:</strong></div><div>${p.SurveyPlan ?? p.surveyplan}</div>` : ""}
-          ${p.SurveyId ?? p.surveyid ? `<div><strong>Survey ID:</strong></div><div>${p.SurveyId ?? p.surveyid}</div>` : ""}
+        
+        <div class="sp-popup-grid">
+          ${pid ? `<div class="sp-row"><span class="sp-label">Parcel ID</span><span class="sp-value mono">${pid}</span></div>` : ""}
+          ${lot ? `<div class="sp-row"><span class="sp-label">Lot No.</span><span class="sp-value mono">${lot}</span></div>` : ""}
+          ${p.BlockNumber ?? p.blocknumber ? `<div class="sp-row"><span class="sp-label">Block</span><span class="sp-value">${p.BlockNumber ?? p.blocknumber}</span></div>` : ""}
+          ${p.Area ?? p.area ? `<div class="sp-row"><span class="sp-label">Area</span><span class="sp-value">${p.Area ?? p.area} sqm</span></div>` : ""}
+          ${p.Claimant ?? p.claimant ? `<div class="sp-row"><span class="sp-label">Claimant</span><span class="sp-value highlight">${p.Claimant ?? p.claimant}</span></div>` : ""}
+          ${p.SurveyPlan ?? p.surveyplan ? `<div class="sp-row"><span class="sp-label">Survey Plan</span><span class="sp-value">${p.SurveyPlan ?? p.surveyplan}</span></div>` : ""}
         </div>
-        <div style="margin-top:12px; display:flex; flex-direction:column; gap:6px;">
-          <button id="${uidTax}" type="button"
-            style="padding:8px 12px;border:0;border-radius:6px;background:#0b5faa;color:#fff;cursor:pointer;font-weight:600;">
-            View Tax Form
+
+        <div class="sp-popup-actions">
+          <button id="${uidTax}" class="sp-btn sp-btn-primary">
+            <i class="bi bi-file-earmark-text"></i> Tax Form
           </button>
-          <button id="${uidParcel}" type="button"
-            style="padding:8px 12px;border:1px solid #d0d7de;border-radius:6px;background:#fff;color:#0b5faa;cursor:pointer;font-weight:600;">
-            View Full Parcel Details
+          <button id="${uidParcel}" class="sp-btn sp-btn-outline">
+            <i class="bi bi-arrow-right-circle"></i> Details
           </button>
         </div>
       </div>`;
-    layer.bindPopup(html, { maxWidth: 300, className: "custom-popup" });
+    layer.bindPopup(html, { maxWidth: 320, className: "custom-popup-modern" });
 
     layer.on("popupopen", () => {
       const btnTax = document.getElementById(uidTax);
@@ -697,71 +907,265 @@ export default function MapPage() {
   return (
     <div style={{ height: "90vh", width: "100%", position: "relative" }}>
       <style>{`
-        .custom-popup .leaflet-popup-content-wrapper {
-          border-radius: 10px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .custom-popup-modern .leaflet-popup-content-wrapper {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(12px);
+          border-radius: 16px;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+          padding: 0;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.6);
         }
-        .custom-popup .leaflet-popup-tip { background: white; }
+        .custom-popup-modern .leaflet-popup-content {
+          margin: 0 !important;
+          width: auto !important;
+        }
+        .custom-popup-modern .leaflet-popup-tip {
+          background: rgba(255, 255, 255, 0.95);
+        }
+        .custom-popup-modern a.leaflet-popup-close-button {
+          top: 12px;
+          right: 12px;
+          color: #adb5bd;
+          font-size: 18px;
+          background: transparent;
+          padding: 0;
+          width: 24px;
+          height: 24px;
+        }
+
+        /* Internal Popup Styles */
+        .sp-popup-content {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          color: #343a40;
+        }
+        .sp-popup-header {
+          padding: 16px 20px;
+          background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+          border-bottom: 1px solid #f1f3f5;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .sp-popup-icon {
+          width: 32px;
+          height: 32px;
+          background: #e7f5ff;
+          color: #0b5faa;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        }
+        .sp-popup-title {
+          display: flex;
+          flex-direction: column;
+        }
+        .sp-popup-title span {
+          font-weight: 700;
+          font-size: 14px;
+          color: #212529;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .sp-popup-title small {
+          font-size: 11px;
+          color: #868e96;
+          font-weight: 500;
+        }
+        .sp-popup-grid {
+          padding: 16px 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .sp-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          font-size: 13px;
+          line-height: 1.4;
+        }
+        .sp-label {
+          color: #868e96;
+          font-weight: 500;
+        }
+        .sp-value {
+          font-weight: 600;
+          color: #495057;
+          text-align: right;
+          max-width: 60%;
+        }
+        .sp-value.mono {
+          font-family: 'SF Mono', 'Roboto Mono', monospace;
+          letter-spacing: -0.3px;
+          color: #0b5faa;
+          background: #e7f5ff;
+          padding: 2px 6px;
+          border-radius: 4px;
+        }
+        .sp-value.highlight {
+          color: #212529;
+        }
+        .sp-popup-actions {
+          padding: 12px 20px 20px;
+          display: flex;
+          gap: 10px;
+        }
+        .sp-btn {
+          flex: 1;
+          padding: 10px;
+          border: none;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: all 0.2s;
+        }
+        .sp-btn-primary {
+          background: #0b5faa;
+          color: white;
+          box-shadow: 0 4px 12px rgba(11, 95, 170, 0.2);
+        }
+        .sp-btn-primary:hover {
+          background: #094d8a;
+          transform: translateY(-1px);
+        }
+        .sp-btn-outline {
+          background: #f8f9fa;
+          color: #495057;
+          border: 1px solid #dee2e6;
+        }
+        .sp-btn-outline:hover {
+          background: #e9ecef;
+          color: #212529;
+        }
 
         /* Layers control grouping styles */
-        .leaflet-control-layers-list label:has(.vl-group-title){
-          font-weight:700;
-          font-size:13px;
-          margin:8px 0 2px;
-          line-height:1.25;
-          cursor:default;
-          font-style:normal!important;
-          padding-left:0;
+        .leaflet-control-layers {
+          border: 0;
+          border-radius: 16px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 12px;
+          color: #343a40;
+          font-family: 'Inter', sans-serif;
+          min-width: 240px;
         }
-        .leaflet-control-layers-list label:has(.vl-group-title) input{
-          display:none;
+        .leaflet-control-layers-toggle {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background-size: 24px;
+          background-color: white;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+          transition: transform 0.2s;
         }
-        .leaflet-control-layers-list label:not(:has(.vl-group-title)){
-          padding-left:16px;
+        .leaflet-control-layers-toggle:hover {
+          background-color: #f8f9fa;
+          transform: scale(1.05);
         }
-        .vl-group-title{ font-style:normal !important; }
-        .leaflet-control-layers-list label:has(.vl-group-main-title){
-          font-weight:800;
-          font-size:13px;
-          margin:8px 0 2px;
-          line-height:1.25;
-          cursor:default;
-          font-style:normal!important;
-          padding-left:0;
+        .leaflet-control-layers-expanded {
+          padding: 16px;
+          background: white;
         }
-        .leaflet-control-layers-list label:has(.vl-group-main-title) input{
-          display:none;
+        .leaflet-control-layers-separator {
+          margin: 12px 0;
+          border-top: 1px solid #e9ecef;
+        }
+        
+        /* Section Headers */
+        .vl-group-main-title, .vl-group-title {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          color: #868e96;
+          font-weight: 700;
+          margin: 16px 0 8px 0;
+          display: block;
+        }
+        .vl-group-main-title:first-child {
+          margin-top: 0;
         }
 
-        .leaflet-control-layers-list .vl-header{
-          font-weight:700;
-          font-size:12px;
-          padding:4px 8px 0;
-          margin-top:6px;
-          line-height:1.2;
+        /* Checkbox/Radio Styling */
+        .leaflet-control-layers label {
+          display: flex;
+          align-items: center;
+          padding: 6px 8px;
+          border-radius: 8px;
+          margin: 2px 0;
+          transition: background 0.15s;
+          cursor: pointer;
         }
-        .leaflet-control-layers-list .vl-indent{
-          display:inline-block;
-          padding-left:14px;
-          position:relative;
-          font-weight:500;
+        .leaflet-control-layers label:hover {
+          background: #f1f3f5;
         }
-        .leaflet-control-layers-list .vl-indent::before{
-          content:"";
-          position:absolute;
-          left:4px;
-          top:50%;
-          width:6px;
-          height:6px;
-          background:#4a6fa1;
-          border-radius:2px;
-          transform:translateY(-50%);
-          opacity:.85;
+        .leaflet-control-layers-base label {
+           margin-bottom: 4px;
         }
-        .leaflet-control-layers-list label{
-          display:flex;
-          align-items:center;
-          gap:4px;
+        
+        /* Custom Inputs */
+        .leaflet-control-layers input {
+          appearance: none;
+          width: 18px;
+          height: 18px;
+          border: 2px solid #adb5bd;
+          border-radius: 4px;
+          margin-right: 10px;
+          position: relative;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .leaflet-control-layers input[type="radio"] {
+          border-radius: 50%;
+        }
+        .leaflet-control-layers input:checked {
+          background-color: #0b5faa;
+          border-color: #0b5faa;
+        }
+        .leaflet-control-layers input[type="checkbox"]:checked::after {
+          content: '✓';
+          position: absolute;
+          color: white;
+          font-size: 12px;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-weight: bold;
+        }
+        .leaflet-control-layers input[type="radio"]:checked::after {
+          content: '';
+          position: absolute;
+          width: 8px;
+          height: 8px;
+          background: white;
+          border-radius: 50%;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+        }
+        .leaflet-control-layers span {
+          font-size: 13px;
+          font-weight: 500;
+          color: #495057;
+        }
+
+        /* Hide empty placeholder labels for headers */
+        .leaflet-control-layers-list label:has(.vl-group-main-title),
+        .leaflet-control-layers-list label:has(.vl-group-title) {
+            pointer-events: none;
+            padding: 0;
+        }
+        .leaflet-control-layers-list label:has(.vl-group-main-title) input,
+        .leaflet-control-layers-list label:has(.vl-group-title) input {
+            display: none;
         }
       `}</style>
 
@@ -806,6 +1210,42 @@ export default function MapPage() {
             />
           </LayersControl.BaseLayer>
 
+          <LayersControl.Overlay checked name="Land Parcels">
+            {fc && (
+              <GeoJSON
+                key={`parcels-${fc?.features?.length || 0}`}
+                data={fc}
+                style={baseStyle}
+                onEachFeature={onEachFeature}
+                bubblingMouseEvents={false}
+                smoothFactor={1.2}
+              />
+            )}
+          </LayersControl.Overlay>
+
+          <LayersControl.Overlay name="Delinquent Parcels (Highlight)">
+            <GeoJSON
+              data={{
+                type: "FeatureCollection",
+                features: (fc?.features || []).filter(f => {
+                   const d = f.properties?.delinquent;
+                   return d === true || d === "true";
+                })
+              }}
+              style={{
+                color: "#ff0000",
+                weight: 3,
+                opacity: 1,
+                fillColor: "#ff0000",
+                fillOpacity: 0.3,
+                dashArray: "5, 5"
+              }}
+              onEachFeature={onEachFeature}
+              bubblingMouseEvents={false}
+              smoothFactor={1.2}
+            />
+          </LayersControl.Overlay>
+
           <LayersControl.BaseLayer name="Mapbox Streets">
             <TileLayer
               url={`https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`}
@@ -826,11 +1266,21 @@ export default function MapPage() {
             />
           </LayersControl.BaseLayer>
 
-          <LayersControl.BaseLayer checked name="Esri World Imagery">
+          <LayersControl.BaseLayer checked name="Google Hybrid">
+            <TileLayer
+              url="https://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}"
+              attribution="Imagery © Google"
+              maxZoom={MAX_ZOOM}
+              maxNativeZoom={20}
+            />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name="Esri World Imagery">
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution="Tiles © Esri"
               maxZoom={MAX_ZOOM}
+              maxNativeZoom={15} // Reduced to 15 to ensure rural areas don't show "Data not available"
             />
           </LayersControl.BaseLayer>
 
@@ -914,16 +1364,7 @@ export default function MapPage() {
           userCollapsed={userCollapsed} setUserCollapsed={setUserCollapsed}
         />
 
-        {/* Parcel vectors (from API) */}
-        {showVectors && (
-          <GeoJSON
-            data={fc}
-            style={baseStyle}
-            onEachFeature={onEachFeature}
-            bubblingMouseEvents={false}
-            smoothFactor={1.2}
-          />
-        )}
+        {/* Parcel vectors moved to LayersControl */}
 
         {/* Fit bounds when static layers have data */}
         <FitBoundsOnData datasets={datasets} />

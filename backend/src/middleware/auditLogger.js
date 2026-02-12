@@ -61,22 +61,23 @@ export async function logAudit(req, evt = {}) {
     // Remove undefined keys for a cleaner JSON
     Object.keys(metaObj).forEach(k => metaObj[k] === undefined && delete metaObj[k]);
 
-    await database.execute(
+    // Ensure entity_id is not null (schema requires it)
+    const finalEntityId = entityId || '-';
+
+    await database.query(
       `INSERT INTO audit_logs
-         (created_at, user_id, username, action, entity, entity_type, entity_id,
-          ip, ua, user_agent, meta)
-       VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (user_id, username, action, entity_type, entity_id,
+          entity_ctx, ip, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         username,
         action,
-        entity,
         entityType,
-        entityId,
+        finalEntityId,
+        JSON.stringify(metaObj),
         ip,
         ua,
-        ua, // store in both ua and user_agent cols you have
-        JSON.stringify(metaObj),
       ]
     );
   } catch (e) {

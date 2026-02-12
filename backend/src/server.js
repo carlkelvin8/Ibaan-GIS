@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { database } from "./config/database.js";
 import swaggerUi from "swagger-ui-express";
@@ -19,6 +21,9 @@ import landAppraisalRoutes from "./routes/landAppraisalRoute.js";
 import landAssessmentRoutes from "./routes/landAssessmentRoutes.js";
 import taxOtherDetailsRoutes from "./routes/taxOtherDetailsRoutes.js";
 import auditLogsRoute from './routes/auditLogsRoute.js';
+import analyticsRoute from './routes/analyticsRoute.js';
+import docsRoutes from './routes/docsRoute.js';
+import mapRoutes from './routes/mapRoute.js';
 
 dotenv.config();
 
@@ -56,8 +61,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type','Authorization'],
 }));
 app.use(cookieParser());                 // <-- so req.cookies.session works
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
+app.use("/api/uploads", express.static(path.join(__dirname, "../uploads")));
 
 /* =========================
    Health / DB ping
@@ -114,6 +124,9 @@ app.use("/api/ibaan/parcels", (req, _res, next) => {
   next();
 });
 app.use('/api', auditLogsRoute);
+app.use('/api/analytics', analyticsRoute);
+app.use('/api/docs', docsRoutes);
+app.use("/api/map", mapRoutes);
 app.use("/api/ibaan", ibaanRoutes);
 
 app.use("/api/landparcel", landParcelRoutes);

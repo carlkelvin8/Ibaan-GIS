@@ -108,9 +108,6 @@ export default function IbaanDashboard() {
           <button className="btn btn-outline-primary" onClick={go("/map")}>
             Open Map
           </button>
-          <button className="btn btn-outline-secondary" onClick={go("/parcel")}>
-            Search Parcel
-          </button>
           <button className="btn btn-outline-success" onClick={go("/taxlist")}>
             Tax List
           </button>

@@ -19,6 +19,17 @@ export default function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Show loading Swal
+    Swal.fire({
+      title: 'Signing up...',
+      text: 'Please wait',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
     try {
       const res = await api.post("/user/signup", form);
       Swal.fire({

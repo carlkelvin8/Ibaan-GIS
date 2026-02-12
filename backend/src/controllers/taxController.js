@@ -13,22 +13,29 @@ const maybe = (v) => (v === undefined || v === "" ? null : v);
 export async function getAll(req, res) {
   try {
     const { lotNo, barangay } = req.query;
-
-    let sql = "SELECT * FROM tax_forms";
     const params = [];
+    if (lotNo) params.push(lotNo);
+    if (lotNo && barangay) params.push(barangay);
 
-    if (lotNo) {
-      sql += ' WHERE "lotNo" = ?';
-      params.push(lotNo);
-      if (barangay) {
-        sql += " AND barangay = ?";
-        params.push(barangay);
-      }
-    }
-
-    const [rows] = await database.query(sql, params);
-    if (!rows || rows.length === 0) {
-      return res.status(404).json({ error: "No tax record found" });
+    const [rows] = await database.query(
+      `SELECT 
+         tf.*,
+         la."assessedValue",
+         tod."paymentStatus",
+         i."Tax_Amount",
+         i."AmountPaid",
+         i."Due_Date"
+       FROM tax_forms tf
+       LEFT JOIN land_assessment_summary la ON tf.id = la."taxId"
+       LEFT JOIN tax_other_details tod ON tf.id = tod."taxId"
+       LEFT JOIN ibaan i ON CAST(tf."parcelId" AS TEXT) = CAST(i."ParcelId" AS TEXT)
+       ${lotNo ? 'WHERE "lotNo" = ?' : ''}
+       ${lotNo && barangay ? 'AND tf.barangay = ?' : ''}`,
+      params
+    );
+    // Return empty array instead of 404 for list endpoints
+    if (!rows) {
+      return res.json([]);
     }
     res.json(rows);
   } catch (err) {
@@ -50,9 +57,9 @@ export async function addNew(req, res) {
         "administrator", "adminAddress", "north", "east", "south", "west",
         "propertyIndexNo", "subdivision", "phase", "lotNo", "tdPrintedNo",
         "houseNo", "street", "landmark", "barangay", "barangayOnPrint", "barangayText",
-        "octNo", "dated", "surveyNo", "cadLotNo", "lotNo2", "blockNo"
+        "octNo", "dated", "surveyNo", "cadLotNo", "lotNo2", "blockNo", "parcelId"
       )
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id
     `;
 
     const [result] = await database.query(sql, [
@@ -85,6 +92,7 @@ export async function addNew(req, res) {
       maybe(d.cadLotNo),
       maybe(d.lotNo2),
       maybe(d.blockNo),
+      maybe(d.parcelId),
     ]);
 
     res.json({ message: "Tax added successfully", insertId: result[0].id });
@@ -128,7 +136,7 @@ export async function editById(req, res) {
         "administrator" = ?, "adminAddress" = ?, "north" = ?, "east" = ?, "south" = ?, "west" = ?,
         "propertyIndexNo" = ?, "subdivision" = ?, "phase" = ?, "lotNo" = ?, "tdPrintedNo" = ?,
         "houseNo" = ?, "street" = ?, "landmark" = ?, "barangay" = ?, "barangayOnPrint" = ?, "barangayText" = ?,
-        "octNo" = ?, "dated" = ?, "surveyNo" = ?, "cadLotNo" = ?, "lotNo2" = ?, "blockNo" = ?
+        "octNo" = ?, "dated" = ?, "surveyNo" = ?, "cadLotNo" = ?, "lotNo2" = ?, "blockNo" = ?, "parcelId" = ?
       WHERE id = ?
     `;
 
@@ -162,6 +170,7 @@ export async function editById(req, res) {
       maybe(d.cadLotNo),
       maybe(d.lotNo2),
       maybe(d.blockNo),
+      maybe(d.parcelId),
       id,
     ]);
 

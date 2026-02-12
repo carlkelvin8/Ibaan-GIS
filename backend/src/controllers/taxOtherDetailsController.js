@@ -23,7 +23,7 @@ export async function upsertOtherDetails(req, res) {
       //  Update existing record
       const sql = `
         UPDATE tax_other_details
-        SET taxability = ?, "effectivityYear" = ?, quarter = ?, "updateCode" = ?, "dateRegistered" = ?
+        SET taxability = ?, "effectivityYear" = ?, quarter = ?, "updateCode" = ?, "dateRegistered" = ?, "paymentStatus" = ?
         WHERE id = ? AND "taxId" = ?
       `;
       const [result] = await database.execute(sql, [
@@ -32,6 +32,7 @@ export async function upsertOtherDetails(req, res) {
         data.quarter || null,
         data.updateCode || null,
         formatDate(data.dateRegistered) || null,
+        data.paymentStatus || "Unpaid",
         data.id,
         taxid,
       ]);
@@ -45,8 +46,8 @@ export async function upsertOtherDetails(req, res) {
       // Insert new record
       const sql = `
         INSERT INTO tax_other_details 
-        ("taxId", taxability, "effectivityYear", quarter, "updateCode", "dateRegistered")
-        VALUES (?, ?, ?, ?, ?, ?) RETURNING id
+        ("taxId", taxability, "effectivityYear", quarter, "updateCode", "dateRegistered", "paymentStatus")
+        VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
       `;
       const [result] = await database.execute(sql, [
         taxid,
@@ -54,7 +55,8 @@ export async function upsertOtherDetails(req, res) {
         data.effectivityYear || null,
         data.quarter || null,
         data.updateCode || null,
-        formatDate(data.dateRegistered) || null
+        formatDate(data.dateRegistered) || null,
+        data.paymentStatus || "Unpaid"
       ]);
 
       return res.json({ message: "Other Details added successfully", id: result[0].id });

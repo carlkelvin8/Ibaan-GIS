@@ -447,7 +447,7 @@ export async function me(req, res) {
     res.set('Expires', '0');
 
     const [rows] = await database.execute(
-      `SELECT id, username, first_name, last_name, email, role, status, office_id, municipality_id, created_at, updated_at
+      `SELECT id, username, first_name, last_name, email, role, status, office_id, municipality_id, profile_picture, created_at, updated_at
        FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
       [id]
     );
@@ -464,6 +464,36 @@ export async function me(req, res) {
     return res.json({ data: { ...u, role_code: u.role, role: codeToRole(u.role) || 'UNKNOWN' }});
   } catch (err) {
     logSqlError('me', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+export async function uploadAvatar(req, res) {
+  try {
+    const id = req.user?.id;
+    if (!id) return res.status(401).json({ error: 'Unauthorized' });
+    
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const filePath = `/uploads/avatars/${req.file.filename}`;
+
+    await database.execute(
+      `UPDATE users SET profile_picture = ?, updated_at = NOW() WHERE id = ?`,
+      [filePath, id]
+    );
+    
+    // Log audit
+    await logAudit(req, {
+      action: "UPLOAD_AVATAR",
+      entity: "users",
+      entityId: id,
+      statusCode: 200,
+      details: { path: filePath }
+    });
+
+    return res.json({ result: 1, message: 'Avatar updated', data: { profile_picture: filePath } });
+  } catch (err) {
+    logSqlError('uploadAvatar', err);
     return res.status(500).json({ error: err.message });
   }
 }
@@ -897,4 +927,5 @@ export default {
   updateMyProfile, changeMyPassword,  forgotPassword,
   verifyResetToken,
   resetPassword,
+  uploadAvatar,
 };

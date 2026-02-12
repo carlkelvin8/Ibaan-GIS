@@ -59,6 +59,16 @@ export default function LoginForm() {
     const payload = { username: form.username.trim(), password: form.password };
     const finalErrors = validate(payload);
     if (Object.keys(finalErrors).length > 0) return;
+    
+    // Show loading Swal
+    Swal.fire({
+      title: 'Logging in...',
+      text: 'Please wait',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
 
     setLoading(true);
     try {
@@ -71,6 +81,15 @@ export default function LoginForm() {
 
       // Prime the session and bust caches
       await api.get("/user/me", { params: { t: Date.now() } });
+
+      // Show success Swal
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login Successful',
+        text: 'Welcome back!',
+        timer: 1500,
+        showConfirmButton: false
+      });
 
       navigate(redirectTo, { replace: true });
     } catch (e) {
@@ -90,151 +109,180 @@ export default function LoginForm() {
 
   return (
     <div className="LoginPage">
-      <div className="LoginCard">
-        {/* Brand */}
-        <div className="brand">
-          <img src="/ibaan.svg" alt="Logo" />
-          <div>
-            <h5 className="m-0">Ibaan GIS</h5>
+      {/* Landing / Marketing Side (SaaS Style) */}
+      <div className="LoginLanding">
+        <div className="landing-content">
+          <div className="brand-pill">
+            <img src="/ibaan.svg" alt="Logo" />
+            <span>Ibaan GIS</span>
           </div>
-        </div>
-
-        <div className="title">
-          <h3 className="mb-1">Welcome back</h3>
-          <p className="subtitle mb-0">Sign in to continue to your dashboard</p>
-        </div>
-
-        {err && (
-          <div className="alert alert-danger" role="alert" aria-live="assertive">
-            {err}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} noValidate>
-          {/* Username / Email */}
-          <div className="mb-3">
-            <label htmlFor="login-username" className="form-label">
-              Username or Email
-            </label>
-            <div className="input-group">
-              <span className="input-group-text">
-                <i className="bi bi-person" aria-hidden="true" />
-              </span>
-              <input
-                id="login-username"
-                type="text"
-                className={`form-control ${userInvalid ? "is-invalid" : ""}`}
-                required
-                placeholder="e.g., juan.delacruz or juan@city.gov.ph"
-                value={form.username}
-                onChange={onChangeUsername}
-                onBlur={() => markTouched("username")}
-                autoComplete="username"
-                disabled={loading}
-                aria-invalid={userInvalid || undefined}
-                aria-describedby={
-                  userInvalid ? "login-username-error" : undefined
-                }
-              />
-              {userInvalid && (
-                <div id="login-username-error" className="invalid-feedback">
-                  {errors.username}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Password */}
-          <div className="mb-2">
-            <label htmlFor="login-password" className="form-label">
-              Password
-            </label>
-            <div className="input-group">
-              <span className="input-group-text">
-                <i className="bi bi-lock" aria-hidden="true" />
-              </span>
-              <input
-                id="login-password"
-                type={showPwd ? "text" : "password"}
-                className={`form-control ${passInvalid ? "is-invalid" : ""}`}
-                required
-                placeholder="Minimum 6 characters"
-                value={form.password}
-                onChange={onChangePassword}
-                onBlur={() => markTouched("password")}
-                onKeyUp={handleCaps}
-                onKeyDown={handleCaps}
-                autoComplete="current-password"
-                disabled={loading}
-                aria-invalid={passInvalid || undefined}
-                aria-describedby={
-                  passInvalid
-                    ? "login-password-error"
-                    : caps
-                    ? "login-password-caps"
-                    : undefined
-                }
-              />
-              <button
-                type="button"
-                className="btn btn-outline-secondary toggle-btn"
-                onClick={() => setShowPwd((s) => !s)}
-                tabIndex={-1}
-                disabled={loading}
-                aria-label={showPwd ? "Hide password" : "Show password"}
-                title={showPwd ? "Hide password" : "Show password"}
-              >
-                <i className={`bi ${showPwd ? "bi-eye-slash" : "bi-eye"}`} />
-              </button>
-              {passInvalid && (
-                <div
-                  id="login-password-error"
-                  className="invalid-feedback d-block"
-                >
-                  {errors.password}
-                </div>
-              )}
-            </div>
-            {caps && !passInvalid && (
-              <div id="login-password-caps" className="form-text text-warning">
-                Caps Lock is ON
+          <h1>
+            Smart Real Property <br />
+            <span className="text-highlight">Tax Assessment</span>
+          </h1>
+          <p>
+            Streamline your property tax management with our comprehensive GIS-powered assessment system. Track payments, manage parcels, and generate reports in real-time.
+          </p>
+          
+          <div className="feature-grid">
+            <div className="feature-item">
+              <div className="icon-box">
+                <i className="bi bi-map"></i>
               </div>
-            )}
+              <div>
+                <h5>Geo-Mapping</h5>
+                <small>Visualize land parcels</small>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="icon-box">
+                <i className="bi bi-calculator"></i>
+              </div>
+              <div>
+                <h5>Auto-Assessment</h5>
+                <small>Instant tax calculation</small>
+              </div>
+            </div>
+            <div className="feature-item">
+              <div className="icon-box">
+                <i className="bi bi-pie-chart"></i>
+              </div>
+              <div>
+                <h5>Analytics</h5>
+                <small>Real-time revenue insights</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Abstract shapes/bg */}
+        <div className="abstract-shape shape-1"></div>
+        <div className="abstract-shape shape-2"></div>
+      </div>
+
+      {/* Login Form Side */}
+      <div className="LoginFormSide">
+        <div className="LoginCard">
+          <div className="mobile-brand d-md-none">
+            <img src="/ibaan.svg" alt="Logo" />
+            <h5>Ibaan GIS</h5>
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            className="btn btn-primary w-100 mt-2"
-            disabled={loading || !isValid}
-          >
-            {loading ? (
-              <>
-                <span
-                  className="spinner-border spinner-border-sm me-2"
-                  role="status"
-                  aria-hidden="true"
+          <div className="title-section">
+            <h3>Welcome back</h3>
+            <p className="text-muted">Enter your credentials to access your account</p>
+          </div>
+
+          {err && (
+            <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
+              <i className="bi bi-exclamation-circle-fill"></i>
+              <div>{err}</div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="mb-4">
+              <label htmlFor="login-username" className="form-label fw-semibold text-secondary small text-uppercase">
+                Username or Email
+              </label>
+              <div className="input-group input-group-lg">
+                <span className="input-group-text bg-white border-end-0 text-muted ps-3">
+                  <i className="bi bi-envelope"></i>
+                </span>
+                <input
+                  id="login-username"
+                  type="text"
+                  className={`form-control border-start-0 ps-0 ${userInvalid ? "is-invalid" : ""}`}
+                  required
+                  placeholder="name@example.com"
+                  value={form.username}
+                  onChange={onChangeUsername}
+                  onBlur={() => markTouched("username")}
+                  autoComplete="username"
+                  disabled={loading}
                 />
-                Signing in…
-              </>
-            ) : (
-              "Login"
-            )}
-          </button>
+                {userInvalid && (
+                  <div className="invalid-feedback ms-2">
+                    {errors.username}
+                  </div>
+                )}
+              </div>
+            </div>
 
-          {/* Footer Links */}
-          <div className="LoginFooter">
-            <small>
-              New here?{" "}
-              <Link to="/signup" aria-label="Go to signup">
-                Create an account
-              </Link>
-            </small>
-            <small>
-              <Link to="/forgot-password">Forgot password?</Link>
+            <div className="mb-4">
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <label htmlFor="login-password" className="form-label fw-semibold text-secondary small text-uppercase mb-0">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="small text-decoration-none fw-semibold" style={{color: 'var(--primary-color)'}}>
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="input-group input-group-lg">
+                <span className="input-group-text bg-white border-end-0 text-muted ps-3">
+                  <i className="bi bi-lock"></i>
+                </span>
+                <input
+                  id="login-password"
+                  type={showPwd ? "text" : "password"}
+                  className={`form-control border-start-0 ps-0 ${passInvalid ? "is-invalid" : ""}`}
+                  required
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={onChangePassword}
+                  onBlur={() => markTouched("password")}
+                  onKeyUp={handleCaps}
+                  onKeyDown={handleCaps}
+                  autoComplete="current-password"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  className="btn bg-white border border-start-0 text-muted pe-3"
+                  onClick={() => setShowPwd((s) => !s)}
+                  tabIndex={-1}
+                  disabled={loading}
+                  style={{borderTopRightRadius: '0.5rem', borderBottomRightRadius: '0.5rem', borderColor: '#dee2e6'}}
+                >
+                  <i className={`bi ${showPwd ? "bi-eye-slash" : "bi-eye"}`} />
+                </button>
+                {passInvalid && (
+                  <div className="invalid-feedback d-block ms-2">
+                    {errors.password}
+                  </div>
+                )}
+              </div>
+              {caps && !passInvalid && (
+                <div className="form-text text-warning mt-1">
+                  <i className="bi bi-capslock-fill me-1"></i> Caps Lock is ON
+                </div>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary w-100 btn-lg rounded-3 fw-bold mb-4 shadow-sm"
+              disabled={loading || !isValid}
+              style={{background: '#ea580c', border: 'none'}}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                  Verifying...
+                </>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+
+          </form>
+          
+          <div className="mt-5 pt-4 text-center border-top">
+            <small className="text-muted text-opacity-50">
+              &copy; {new Date().getFullYear()} Ibaan GIS. All rights reserved.
             </small>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

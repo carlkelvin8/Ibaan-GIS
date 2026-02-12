@@ -1,120 +1,200 @@
-/* Scope styles to the login page only */
+/* Global Vars for this page */
+:root {
+  --primary-color: #ea580c; /* Orange-600 */
+  --primary-solid: #ea580c; /* Solid orange, no gradient */
+  --text-dark: #374151; /* Gray-700 matching sidebar text */
+  --text-muted: #6b7280;
+  --bg-surface: #ffffff; /* White background */
+}
+
 .LoginPage {
-    min-height: 100vh;
-    display: grid;
-    place-items: center;
-    background:
-      radial-gradient(1200px 600px at 110% -10%, rgba(255, 115, 0, 0.10), transparent 60%),
-      radial-gradient(900px 500px at -10% 110%, rgba(255, 213, 128, 0.25), transparent 60%),
-      #fffaf0; /* soft warm background */
-    padding: 24px;
+  min-height: 100vh;
+  display: flex;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* LEFT SIDE: SaaS Marketing Landing */
+.LoginLanding {
+  flex: 1;
+  background: #ffffff; /* White background */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 60px;
+  overflow: hidden;
+  border-right: 1px solid rgba(0,0,0,0.05); /* Subtle separator */
+}
+
+/* Remove abstract shapes */
+.abstract-shape {
+  display: none;
+}
+
+.LoginLanding .landing-content {
+  position: relative;
+  z-index: 10;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  padding: 8px 20px 8px 16px;
+  border-radius: 100px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  margin-bottom: 40px;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.brand-pill img {
+  height: 32px;
+  width: auto;
+}
+
+.LoginLanding h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #111827;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+
+.text-highlight {
+  color: var(--primary-solid); /* Solid color instead of gradient clip */
+}
+
+.LoginLanding p {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 60px;
+  max-width: 480px;
+}
+
+/* Feature Grid */
+.feature-grid {
+  display: grid;
+  gap: 32px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.feature-item .icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #ffedd5; /* Orange-100 */
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.feature-item h5 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-dark);
+  font-size: 1rem;
+}
+
+.feature-item small {
+  color: var(--text-muted);
+}
+
+/* RIGHT SIDE: Login Form */
+.LoginFormSide {
+  flex: 0 0 500px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  box-shadow: -10px 0 30px rgba(0,0,0,0.02);
+  z-index: 20;
+}
+
+.LoginCard {
+  width: 100%;
+  max-width: 380px;
+}
+
+.mobile-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  justify-content: center;
+}
+
+.mobile-brand img {
+  height: 40px;
+}
+
+.title-section {
+  margin-bottom: 32px;
+}
+
+.title-section h3 {
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.title-section p {
+  font-size: 0.95rem;
+}
+
+/* Form Styles Override */
+.LoginCard .form-control {
+  border-color: #fed7aa; /* Orange-200 border */
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  background-color: #fffbf5;
+}
+
+.LoginCard .form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+  background-color: #fff;
+}
+
+.LoginCard .input-group-text {
+  border-color: #fed7aa;
+  background-color: #ffffff;
+}
+
+.LoginCard .btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3) !important;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .LoginLanding {
+    display: none;
   }
   
-  /* Card */
+  .LoginFormSide {
+    flex: 1;
+    background: #ffffff; /* White background */
+  }
+  
   .LoginCard {
-    width: 100%;
-    max-width: 440px;
     background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow:
-      0 10px 30px rgba(0,0,0,0.08),
-      0 2px 8px rgba(0,0,0,0.06);
-    padding: 22px;
+    padding: 32px;
+    border-radius: 24px;
+    box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.1);
   }
-  
-  .LoginCard .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    justify-content: center;
-    margin-bottom: 4px;
-  }
-  
-  .LoginCard .brand img {
-    height: 56px;
-    width: 56px;
-    object-fit: contain;
-  }
-  
-  .LoginCard .title {
-    text-align: center;
-    margin: 8px 0 18px;
-  }
-  
-  .LoginCard .subtitle {
-    text-align: center;
-    color: #6b7280; /* gray-500 */
-    font-size: 0.95rem;
-    margin-bottom: 18px;
-  }
-  
-  /* Inputs */
-  .LoginCard .input-group-text {
-    background: #fff7e6;
-    border: 1px solid rgba(0,0,0,0.08);
-    border-right: 0;
-  }
-  
-  .LoginCard .form-control {
-    border: 1px solid rgba(0,0,0,0.12);
-    background: #ffffff;
-  }
-  
-  .LoginCard .form-control:focus {
-    border-color: #ff7300;
-    box-shadow: 0 0 0 0.2rem rgba(255, 115, 0, 0.25);
-  }
-  
-  /* Toggle password button */
-  .LoginCard .toggle-btn {
-    border-color: rgba(0,0,0,0.12);
-  }
-  
-  .LoginCard .toggle-btn:focus {
-    box-shadow: 0 0 0 0.2rem rgba(255, 115, 0, 0.25);
-    border-color: #ff7300;
-  }
-  
-  /* Primary button scoped so it won't affect global theme */
-  .LoginCard .btn-primary {
-    background: #ff7300;
-    border-color: #ff7300;
-  }
-  
-  .LoginCard .btn-primary:hover {
-    background: #f06500;
-    border-color: #f06500;
-  }
-  
-  .LoginCard .btn-primary:disabled {
-    opacity: 0.75;
-  }
-  
-  /* Footer row with links */
-  .LoginFooter {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-top: 16px;
-  }
-  
-  .LoginFooter a {
-    text-decoration: none;
-    color: #0c63e4; /* bootstrap primary link */
-  }
-  
-  .LoginFooter a:hover {
-    text-decoration: underline;
-  }
-  
-  /* Small helper text */
-  .text-warning {
-    font-size: 0.9rem;
-  }
-  
-  /* Reduce alert margin */
-  .LoginCard .alert {
-    margin-bottom: 14px;
-  }
+}

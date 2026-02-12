@@ -1,7 +1,7 @@
 // backend/src/routes/ibaanRoute.js
 import { Router } from "express";
 import {
-  getAll, getById, addNew, editById, removeById, search,
+  getAll, getById, addNew, editById, removeById, search, getByTaxId
 } from "../controllers/ibaanController.js";
 
 const router = Router();
@@ -12,6 +12,24 @@ const router = Router();
  *   name: Ibaan
  *   description: Ibaan municipality data
  */
+
+/**
+ * @swagger
+ * /ibaan/tax/{taxId}:
+ *   get:
+ *     summary: Get Parcel ID by Tax ID
+ *     tags: [Ibaan]
+ *     parameters:
+ *       - in: path
+ *         name: taxId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Parcel ID
+ */
+router.get("/tax/:taxId", getByTaxId);
 
 /**
  * @swagger

@@ -75,9 +75,9 @@ const Alameda = () => {
         await api.put(`alameda/${parcel.ParcelId}`, parcel);
         alert("Parcel updated successfully!");
         localStorage.removeItem("ParcelId");
-        navigate("/parcel");
+        navigate("/landparcellist"); // Fixed redirect
       } else {
-        const res = await api.post("iban", parcel);
+        const res = await api.post("ibaan", parcel); // Fixed typo iban -> ibaan
         alert("Parcel saved successfully!");
         setParcel({ ...parcel, id: res.data.id });
       }

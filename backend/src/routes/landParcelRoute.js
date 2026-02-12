@@ -4,7 +4,8 @@ import {
   addNew, 
   getById, 
   editById, 
-  removeById   // ✅ import delete function
+  removeById,   // ✅ import delete function
+  search
 } from '../controllers/landParcelController.js';
 
 const router = express.Router();
@@ -70,6 +71,24 @@ router.post("/", addNew);
 
 /**
  * @swagger
+ * /landparcel/search/{term}:
+ *   get:
+ *     summary: Search land parcels
+ *     tags: [LandParcel]
+ *     parameters:
+ *       - in: path
+ *         name: term
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Search results
+ */
+router.get("/search/:term", search);
+
+/**
+ * @swagger
  * /landparcel/{id}:
  *   get:
  *     summary: Get land parcel by ID
@@ -101,13 +120,14 @@ router.get("/:id", getById);
  *         schema:
  *           type: integer
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             $ref: '#/components/schemas/LandParcel'
  *     responses:
  *       200:
- *         description: Updated successfully
+ *         description: Land parcel updated
  */
 router.put("/:id", editById);
 
@@ -125,8 +145,8 @@ router.put("/:id", editById);
  *           type: integer
  *     responses:
  *       200:
- *         description: Deleted successfully
+ *         description: Land parcel deleted
  */
-router.delete("/:id", removeById);  // ✅ new delete route
+router.delete("/:id", removeById);
 
 export default router;

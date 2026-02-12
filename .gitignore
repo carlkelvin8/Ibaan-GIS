@@ -14,3 +14,7 @@ build/
 # logs
 logs/
 *.log
+
+# OS metadata
+.DS_Store
+Thumbs.db

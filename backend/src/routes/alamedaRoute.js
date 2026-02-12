@@ -33,7 +33,7 @@ const router = express.Router();
  *       200:
  *         description: Search results
  */
-router.get('/search', authRequired, search);
+router.get('/search/:value', authRequired, search);
 
 /**
  * @swagger

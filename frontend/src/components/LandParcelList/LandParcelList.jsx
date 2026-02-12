@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import Table from "react-bootstrap/Table";
 import Button from "react-bootstrap/Button";
+import Form from "react-bootstrap/Form";
+import InputGroup from "react-bootstrap/InputGroup";
+import Pagination from "react-bootstrap/Pagination";
 import api from "../../lib/axios.js";
 import { useNavigate } from "react-router-dom";
 
@@ -57,22 +60,58 @@ const LandParcelList = () => {
   const [parcels, setParcels] = useState([]);
   const [navBusyId, setNavBusyId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const itemsPerPage = 25;
 
   const toStr = (v) => (v == null ? "" : String(v).trim());
 
-  useEffect(() => {
-    const fetchLandParcel = async () => {
-      try {
-        const res = await api.get("/landparcel");
-        setParcels(Array.isArray(res.data) ? res.data : []);
-        localStorage.removeItem("parcelID");
-      } catch (error) {
-        console.error("error fetching data", error);
+  const fetchLandParcel = async (page = 1, search = searchTerm) => {
+    try {
+      const res = await api.get(`/landparcel`, {
+        params: {
+          page,
+          limit: itemsPerPage,
+          search: search || undefined
+        }
+      });
+      if (res.data && Array.isArray(res.data.data)) {
+        setParcels(res.data.data);
+        setTotalPages(res.data.totalPages || 1);
+        setCurrentPage(page);
+      } else if (Array.isArray(res.data)) {
+        // Fallback for non-paginated API
+        setParcels(res.data);
+        setTotalPages(1);
+      } else {
         setParcels([]);
       }
-    };
-    fetchLandParcel();
+      localStorage.removeItem("parcelID");
+    } catch (error) {
+      console.error("error fetching data", error);
+      setParcels([]);
+    }
+  };
+
+  useEffect(() => {
+    fetchLandParcel(1, "");
   }, []);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      fetchLandParcel(newPage, searchTerm);
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e?.preventDefault();
+    setSearching(true);
+    // Reset to page 1 on new search
+    await fetchLandParcel(1, searchTerm);
+    setSearching(false);
+  };
 
   const handleEdit = (parcel) => {
     const pid = parcel.parcelID ?? parcel.ParcelId ?? parcel.parcelId ?? parcel.PARCELID;
@@ -136,80 +175,215 @@ const LandParcelList = () => {
 
   return (
     <div className="container mt-4">
-      <h2>Land Parcel List</h2>
-      <Button className="mb-3" onClick={handleAdd}>
-        Add New
-      </Button>
+      {/* Page Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="mb-1" style={{ fontWeight: 700, color: "#1f2937" }}>
+            <i className="bi bi-map me-2"></i>
+            Land Parcel List
+          </h2>
+          <p className="text-muted mb-0" style={{ fontSize: "14px" }}>
+            View and manage land parcel records and assessments.
+          </p>
+        </div>
+        <Button 
+          variant="primary" 
+          onClick={handleAdd}
+          className="d-flex align-items-center gap-2 px-4 py-2 rounded-pill shadow-sm"
+          style={{ fontWeight: 600 }}
+        >
+          <i className="bi bi-plus-lg"></i>
+          Add New
+        </Button>
+      </div>
+      
+      {/* Search Bar */}
+      <div className="card shadow-sm border-0 rounded-4 mb-4">
+        <div className="card-body p-3">
+          <Form onSubmit={handleSearch}>
+            <InputGroup>
+              <InputGroup.Text className="bg-white border-end-0 rounded-start-pill ps-3">
+                <i className="bi bi-search text-muted"></i>
+              </InputGroup.Text>
+              <Form.Control
+                type="text"
+                placeholder="Search by Parcel ID, Address, or Barangay..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-start-0 rounded-end-pill shadow-none"
+                style={{ paddingLeft: 0 }}
+              />
+              <Button 
+                variant="primary" 
+                type="submit" 
+                disabled={searching}
+                className="ms-2 rounded-pill px-4"
+              >
+                {searching ? "Searching..." : "Search"}
+              </Button>
+              {searchTerm && (
+                <Button 
+                  variant="light" 
+                  className="ms-2 rounded-pill px-3 text-muted"
+                  onClick={() => {
+                    setSearchTerm("");
+                    fetchLandParcel();
+                  }}
+                >
+                  Clear
+                </Button>
+              )}
+            </InputGroup>
+          </Form>
+        </div>
+      </div>
 
       {parcels.length > 0 ? (
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>Parcel ID</th>
-              <th>Street Address</th>
-              <th>Barangay</th>
-              <th>Municipality</th>
-              <th>Zip Code</th>
-              <th style={{ minWidth: 300 }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {parcels.map((parcel) => {
-              const rowPid = parcel.parcelID ?? parcel.ParcelId ?? parcel.parcelId ?? parcel.PARCELID;
-              const busyNav = navBusyId === rowPid;
-              const busyDel = deletingId === rowPid;
-
-              return (
-                <tr key={rowPid ?? `row-${Math.random()}`}>
-                  <td>{rowPid}</td>
-                  <td>{parcel.StreetAddress}</td>
-                  <td>{parcel.Barangay}</td>
-                  <td>{parcel.Municipality}</td>
-                  <td>{parcel.ZipCode}</td>
-                  <td>
-                    <div className="d-flex flex-wrap gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleViewOnMap(parcel)}
-                        disabled={busyNav || busyDel}
-                      >
-                        {busyNav ? "Opening…" : "View on Map"}
-                      </Button>
-                      <Button
-                        variant="info"
-                        size="sm"
-                        className="text-white"
-                        onClick={() => navigate(`/parcel-details/${encodeURIComponent(rowPid)}`)}
-                        disabled={busyDel}
-                      >
-                        Details
-                      </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={() => handleEdit(parcel)}
-                        disabled={busyDel}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => handleDelete(parcel)}
-                        disabled={busyDel}
-                      >
-                        {busyDel ? "Deleting…" : "Delete"}
-                      </Button>
-                    </div>
-                  </td>
+        <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
+          <div className="card-body p-0">
+            <Table striped hover responsive className="mb-0 align-middle">
+              <thead className="bg-light">
+                <tr>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0">
+                    Parcel ID
+                  </th>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0">
+                    Street Address
+                  </th>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0">
+                    Barangay
+                  </th>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0">
+                    Municipality
+                  </th>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0">
+                    Zip Code
+                  </th>
+                  <th className="py-3 px-4 text-uppercase text-secondary text-xs font-weight-bolder opacity-7 border-0" style={{ minWidth: 320 }}>
+                    Actions
+                  </th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </Table>
+              </thead>
+              <tbody>
+                {parcels.map((parcel) => {
+                  const rowPid = parcel.parcelID ?? parcel.ParcelId ?? parcel.parcelId ?? parcel.PARCELID;
+                  const busyNav = navBusyId === rowPid;
+                  const busyDel = deletingId === rowPid;
+
+                  return (
+                    <tr key={rowPid ?? `row-${Math.random()}`} style={{ transition: "background 0.2s" }}>
+                      <td className="px-4 py-3">
+                        <span className="badge bg-light text-dark border">
+                          {rowPid}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 fw-bold text-dark text-truncate" style={{ maxWidth: 200 }}>
+                        {parcel.StreetAddress}
+                      </td>
+                      <td className="px-4 py-3 text-secondary">
+                        {parcel.Barangay}
+                      </td>
+                      <td className="px-4 py-3 text-secondary">
+                        {parcel.Municipality}
+                      </td>
+                      <td className="px-4 py-3 text-secondary">
+                        {parcel.ZipCode}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="d-flex gap-2">
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="rounded-pill px-3"
+                            onClick={() => handleViewOnMap(parcel)}
+                            disabled={busyNav || busyDel}
+                            title="View on Map"
+                          >
+                            <i className="bi bi-geo-alt-fill"></i>
+                          </Button>
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            className="rounded-pill px-3"
+                            onClick={() => navigate(`/parcel-details/${encodeURIComponent(rowPid)}`)}
+                            disabled={busyDel}
+                            title="Details"
+                          >
+                            <i className="bi bi-info-circle-fill"></i>
+                          </Button>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="rounded-pill px-3"
+                            onClick={() => handleEdit(parcel)}
+                            disabled={busyDel}
+                            title="Edit"
+                          >
+                            <i className="bi bi-pencil-fill"></i>
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            className="rounded-pill px-3"
+                            onClick={() => handleDelete(parcel)}
+                            disabled={busyDel}
+                            title="Delete"
+                          >
+                            <i className="bi bi-trash-fill"></i>
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </div>
+        </div>
       ) : (
-        <p className="text-muted">No results found.</p>
+        <div className="text-center py-5 bg-light rounded-3 border border-dashed">
+          <i className="bi bi-map text-muted display-4 mb-3 d-block"></i>
+          <p className="text-muted h5">No land parcels found.</p>
+          <Button variant="link" onClick={handleAdd}>Add a new parcel</Button>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-center mt-4">
+          <Pagination className="shadow-sm rounded-pill overflow-hidden">
+            <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+            <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+            
+            {[...Array(totalPages)].map((_, idx) => {
+              const pageNum = idx + 1;
+              if (
+                pageNum === 1 ||
+                pageNum === totalPages ||
+                (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+              ) {
+                return (
+                  <Pagination.Item
+                    key={pageNum}
+                    active={pageNum === currentPage}
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </Pagination.Item>
+                );
+              } else if (
+                pageNum === currentPage - 3 ||
+                pageNum === currentPage + 3
+              ) {
+                return <Pagination.Ellipsis key={`ellipsis-${pageNum}`} />;
+              }
+              return null;
+            })}
+
+            <Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+            <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
+          </Pagination>
+        </div>
       )}
     </div>
   );

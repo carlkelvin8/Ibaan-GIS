@@ -19,7 +19,6 @@ const pool = new pg.Pool({
 function convertQuery(sql) {
     // 1. Replace ? with $1, $2, ...
     let paramCount = 1;
-    // We need to be careful not to replace ? inside strings, but for now simple regex is usually enough for parameterized queries
     let newSql = sql.replace(/\?/g, () => `$${paramCount++}`);
     
     // 2. Replace backticks with double quotes for identifiers
@@ -29,7 +28,6 @@ function convertQuery(sql) {
     newSql = newSql.replace(/CAST\((.*?) AS CHAR\)/gi, 'CAST($1 AS TEXT)');
 
     // 4. Replace specific MySQL functions
-    // IFNULL -> COALESCE (Postgres supports COALESCE)
     newSql = newSql.replace(/IFNULL\(/gi, 'COALESCE(');
 
     return newSql;
@@ -38,17 +36,23 @@ function convertQuery(sql) {
 const database = {
     pool, 
     query: async (sql, params) => {
+        // If params is provided, use conversion. If params is undefined, use raw SQL.
         const pgSql = convertQuery(sql);
+        
         try {
+            // Log for debugging pagination issues
+            // console.log("SQL EXEC:", pgSql, params);
+
             const res = await pool.query(pgSql, params);
-            // Mimic mysql2 structure: [rows, fields]
-            // Attach rowCount/affectedRows to the rows array for compatibility
-            const rows = res.rows;
-            rows.rowCount = res.rowCount;
-            rows.affectedRows = res.rowCount; 
+            
+            // Normalize result to match mysql2 [rows, fields]
+            // For SELECT, res.rows is the data.
+            const rows = res.rows || []; 
+            Object.defineProperty(rows, 'affectedRows', { value: res.rowCount, enumerable: false });
+            Object.defineProperty(rows, 'insertId', { value: 0, enumerable: false }); 
+            
             return [rows, res.fields]; 
         } catch (err) {
-            // Enhanced error logging
             console.error('----------------------------------------');
             console.error('SQL Error:', err.message);
             console.error('Original Query:', sql);
@@ -59,7 +63,6 @@ const database = {
         }
     },
     execute: async (sql, params) => {
-        // In pg, query() handles parameterized queries automatically
         return database.query(sql, params);
     },
     end: () => pool.end()

@@ -2,7 +2,10 @@ import { database } from '../config/database.js';
 
 export async function getAllAlameda (req, res) {
   try {
-    const [data] = await database.query('SELECT * FROM alameda');
+    const [data] = await database.query(`
+      SELECT *, ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(geometry), 3123), 4326))::jsonb AS geojson 
+      FROM alameda
+    `);
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -11,7 +14,11 @@ export async function getAllAlameda (req, res) {
 
 export async function getAlamedaById (req, res) {
   try {
-    const [data] = await database.execute('SELECT * FROM alameda WHERE parcelid = ?', [req.params.id]);
+    const [data] = await database.execute(
+      `SELECT *, ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(geometry), 3123), 4326))::jsonb AS geojson 
+       FROM alameda WHERE parcelid = ?`, 
+      [req.params.id]
+    );
     if (data.length === 0) {
       return res.status(404).json({ error: "Data not found" });
     }
@@ -60,8 +67,17 @@ export async function editAlamedaById (req, res) {
 
 export async function search(req, res) {
   try {
-    let value = req.params.value;
-    const [data] = await database.execute('SELECT * FROM alameda WHERE parcelid like (?) or claimant like (?) or barangayna like (?)', [value,value,value]);
+    let raw = String(req.params.value ?? "").trim();
+    if (!raw) return res.json({ ID: 0, message: 'Data not found.'});
+
+    const needle = `%${raw}%`;
+    const [data] = await database.execute(
+      `SELECT *, ST_AsGeoJSON(ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(geometry), 3123), 4326))::jsonb AS geojson 
+       FROM alameda 
+       WHERE CAST(parcelid AS TEXT) ILIKE ? OR claimant ILIKE ? OR barangayna ILIKE ?`, 
+      [needle, needle, needle]
+    );
+
     if (data.length === 0) {
       return res.json({ ID: 0, message: 'Data not found.'});
     }

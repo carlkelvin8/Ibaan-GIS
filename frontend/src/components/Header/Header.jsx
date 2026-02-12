@@ -105,13 +105,25 @@ export default function Header() {
         ) : user ? (
           <button
             className="user-chip"
-            onClick={() => setOpen((s) => !s)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen((s) => !s);
+            }}
             aria-haspopup="menu"
             aria-expanded={open}
             title={displayName}
           >
-            <span className="avatar" style={{ background: avatarBg }}>
-              {initials}
+            <span className="avatar" style={{ background: avatarBg, overflow: "hidden" }}>
+              {user.profile_picture ? (
+                <img 
+                  src={`${api.defaults.baseURL}${user.profile_picture}`} 
+                  alt="Profile" 
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  onError={(e) => { e.target.style.display = 'none'; }} 
+                />
+              ) : (
+                initials
+              )}
             </span>
             <span className="user-meta">
               <span className="user-name" title={displayName}>{displayName}</span>
@@ -139,8 +151,17 @@ export default function Header() {
         {open && user && (
           <div className="user-menu" role="menu">
             <div className="user-menu-header">
-              <span className="avatar sm" style={{ background: avatarBg }}>
-                {initials}
+              <span className="avatar sm" style={{ background: avatarBg, overflow: "hidden" }}>
+                {user.profile_picture ? (
+                  <img 
+                    src={`${api.defaults.baseURL}${user.profile_picture}`} 
+                    alt="Profile" 
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    onError={(e) => { e.target.style.display = 'none'; }} 
+                  />
+                ) : (
+                  initials
+                )}
               </span>
               <div>
                 <div className="user-menu-name">{displayName}</div>
